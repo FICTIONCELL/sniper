@@ -1,0 +1,29 @@
+services:
+  # Backend Service (Node.js)
+  - type: web
+    name: sniper-backend
+    env: node
+    rootDir: sniperabonment
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: MONGODB_URI
+        sync: false # User must provide this in Render Dashboard
+      - key: JWT_SECRET
+        generateValue: true
+
+  # Frontend Service (Static Site)
+  - type: static
+    name: sniper-frontend
+    env: static
+    rootDir: .
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: sniper-backend
+          property: url
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false # User must provide this
