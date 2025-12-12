@@ -3,16 +3,54 @@ import axios from 'axios';
 const DRIVE_API_URL = 'https://www.googleapis.com/drive/v3/files';
 const UPLOAD_API_URL = 'https://www.googleapis.com/upload/drive/v3/files';
 const DB_FILE_NAME = 'sniper_build_flow_db.json';
+const FOLDER_NAME = 'sniper_database';
 
 export const googleDriveService = {
+    async ensureFolder(accessToken: string) {
+        try {
+            // Check if folder exists
+            const response = await axios.get(DRIVE_API_URL, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                params: {
+                    q: `mimeType = 'application/vnd.google-apps.folder' and name = '${FOLDER_NAME}' and trashed = false`,
+                    spaces: 'drive',
+                },
+            });
+
+            if (response.data.files && response.data.files.length > 0) {
+                return response.data.files[0];
+            }
+
+            // Create folder if it doesn't exist
+            const fileMetadata = {
+                name: FOLDER_NAME,
+                mimeType: 'application/vnd.google-apps.folder',
+            };
+
+            const createResponse = await axios.post(DRIVE_API_URL, fileMetadata, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            return createResponse.data;
+        } catch (error) {
+            console.error('Error ensuring folder exists:', error);
+            throw error;
+        }
+    },
+
     async findFile(accessToken: string) {
         try {
+            // First ensure folder exists
+            const folder = await this.ensureFolder(accessToken);
+
             const response = await axios.get(DRIVE_API_URL, {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
                 },
                 params: {
-                    q: `name = '${DB_FILE_NAME}' and trashed = false`,
+                    q: `name = '${DB_FILE_NAME}' and '${folder.id}' in parents and trashed = false`,
                     spaces: 'drive',
                 },
             });
@@ -25,9 +63,13 @@ export const googleDriveService = {
 
     async createFile(accessToken: string, data: any) {
         try {
+            // First ensure folder exists
+            const folder = await this.ensureFolder(accessToken);
+
             const fileMetadata = {
                 name: DB_FILE_NAME,
                 mimeType: 'application/json',
+                parents: [folder.id],
             };
 
             const formData = new FormData();
