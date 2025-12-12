@@ -18,6 +18,7 @@ interface GoogleDriveContextType {
     lastSynced: Date | null;
     uploadDocument: (file: File | Blob, fileName: string, projectId: string) => Promise<void>;
     getDocuments: (projectId?: string) => Promise<any[]>;
+    accessToken: string | null;
 }
 
 const GoogleDriveContext = createContext<GoogleDriveContextType | undefined>(undefined);
@@ -393,6 +394,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return (
         <GoogleDriveContext.Provider value={{
             isAuthenticated: !!accessToken,
+            accessToken,
             user,
             userEmail,
             login,

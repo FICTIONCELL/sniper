@@ -69,7 +69,7 @@ const Settings = () => {
   const { theme: currentTheme, setTheme: setCurrentTheme } = useTheme();
   const [eraseCode, setEraseCode] = useState("");
 
-  const { isAuthenticated, login, logout, isSyncing, syncData, lastSynced, pendingSync, user, userEmail } = useGoogleDrive();
+  const { isAuthenticated, accessToken, login, logout, isSyncing, syncData, lastSynced, pendingSync, user, userEmail } = useGoogleDrive();
   const { currentDevice, devices, removeDevice } = useDevice();
   const { subscription, daysRemaining, progressPercentage, isActive, isTrial, limits, trialAvailable, isLoading, activateSubscription, startTrial, cancelSubscription } = useSubscription();
   const [licenseKey, setLicenseKey] = useState("");
