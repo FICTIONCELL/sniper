@@ -861,7 +861,7 @@ const Settings = () => {
               <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                 <div>
                   <p className="text-sm text-muted-foreground">{t('plan') || 'Plan'}</p>
-                  <p className="font-medium">{subscription.plan === 'pro' ? 'Pro' : 'Standard'}</p>
+                  <p className="font-medium capitalize">{subscription.plan}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{t('expiryDate') || 'Date d\'expiration'}</p>
