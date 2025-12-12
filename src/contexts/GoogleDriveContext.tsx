@@ -220,18 +220,15 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         try {
             const file = await googleDriveService.findFile(token);
             if (file) {
+                // Show notification that data is being loaded
                 toast({
-                    title: "Sauvegarde trouvée",
-                    description: "Une sauvegarde existe sur votre Drive. Voulez-vous la charger ?",
-                    action: (
-                        <button
-                            className="bg-primary text-primary-foreground px-3 py-2 rounded-md text-sm font-medium"
-                            onClick={() => loadDataWithToken(token)}
-                        >
-                            Charger
-                        </button>
-                    ),
+                    title: "📦 Chargement en cours...",
+                    description: "Récupération de vos données depuis Google Drive.",
+                    duration: 3000,
                 });
+
+                // Automatically load data
+                await loadDataWithToken(token);
             }
         } catch (error) {
             console.error("Error checking for remote data", error);
