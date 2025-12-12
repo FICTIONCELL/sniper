@@ -188,10 +188,25 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [state.soundEnabled, state.toastsEnabled, state.notificationsEnabled, state.browserNotifications, state.autoDelete]);
 
   const playNotificationSound = () => {
-    if (state.soundEnabled) {
+    if (state.soundEnabled && state.notificationsEnabled) {
       try {
         const audio = new Audio('/alert.mp3');
-        audio.play().catch(e => console.error("Audio play failed", e));
+        audio.volume = 0.5; // Set volume to 50%
+
+        // Try to play the audio
+        const playPromise = audio.play();
+
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              console.log('Notification sound played successfully');
+            })
+            .catch(error => {
+              console.error('Audio play failed:', error);
+              // If autoplay is blocked, we can't do much about it
+              // The user needs to interact with the page first
+            });
+        }
       } catch (error) {
         console.error("Failed to play notification sound", error);
       }
