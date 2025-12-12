@@ -166,7 +166,13 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 await googleDriveService.updateFile(token, file.id, mergedData);
             }
 
-            window.location.reload();
+            toast({
+                title: "Données chargées",
+                description: "Vos données ont été chargées depuis Google Drive avec succès.",
+            });
+
+            // Trigger a re-render by dispatching a custom event
+            window.dispatchEvent(new Event('sniper-data-loaded'));
 
         } catch (error) {
             console.error("Load error", error);
