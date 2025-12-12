@@ -95,15 +95,29 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
     };
 
+    const clearLocalData = () => {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sniper_')) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+    };
+
     const logout = () => {
         googleLogout();
         setAccessToken(null);
         setUser(null);
         setUserEmail(null);
+        clearLocalData();
         toast({
             title: t('disconnected'),
-            description: "Vous avez été déconnecté de Google Drive.",
+            description: "Vous avez été déconnecté. Les données locales ont été effacées.",
         });
+        // Reload to reset app state completely
+        window.location.reload();
     };
 
     const checkForRemoteData = async (token: string) => {
