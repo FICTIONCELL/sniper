@@ -21,6 +21,8 @@ interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
   soundEnabled: boolean;
+  toastsEnabled: boolean;
+  notificationsEnabled: boolean; // Master switch
   browserNotifications: boolean;
   autoDelete: boolean;
 }
@@ -31,13 +33,15 @@ type NotificationAction =
   | { type: 'MARK_ALL_AS_READ' }
   | { type: 'DELETE_NOTIFICATION'; id: string }
   | { type: 'CLEAR_ALL' }
-  | { type: 'UPDATE_SETTINGS'; settings: Partial<Pick<NotificationState, 'soundEnabled' | 'browserNotifications' | 'autoDelete'>> }
+  | { type: 'UPDATE_SETTINGS'; settings: Partial<Pick<NotificationState, 'soundEnabled' | 'toastsEnabled' | 'notificationsEnabled' | 'browserNotifications' | 'autoDelete'>> }
   | { type: 'LOAD_NOTIFICATIONS'; notifications: Notification[] };
 
 const initialState: NotificationState = {
   notifications: [],
   unreadCount: 0,
   soundEnabled: true,
+  toastsEnabled: true,
+  notificationsEnabled: true,
   browserNotifications: false,
   autoDelete: true,
 };
@@ -130,7 +134,7 @@ interface NotificationContextType {
   markAllAsRead: () => void;
   deleteNotification: (id: string) => void;
   clearAll: () => void;
-  updateSettings: (settings: Partial<Pick<NotificationState, 'soundEnabled' | 'browserNotifications' | 'autoDelete'>>) => void;
+  updateSettings: (settings: Partial<Pick<NotificationState, 'soundEnabled' | 'toastsEnabled' | 'notificationsEnabled' | 'browserNotifications' | 'autoDelete'>>) => void;
   requestPermission: () => Promise<boolean>;
 }
 
@@ -176,10 +180,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     localStorage.setItem('notificationSettings', JSON.stringify({
       soundEnabled: state.soundEnabled,
+      toastsEnabled: state.toastsEnabled,
+      notificationsEnabled: state.notificationsEnabled,
       browserNotifications: state.browserNotifications,
       autoDelete: state.autoDelete,
     }));
-  }, [state.soundEnabled, state.browserNotifications, state.autoDelete]);
+  }, [state.soundEnabled, state.toastsEnabled, state.notificationsEnabled, state.browserNotifications, state.autoDelete]);
 
   const playNotificationSound = () => {
     if (state.soundEnabled) {
@@ -212,15 +218,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   };
 
   const addNotification = (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    // Master switch check
+    if (!state.notificationsEnabled) return;
+
     dispatch({ type: 'ADD_NOTIFICATION', notification });
 
-    // Show toast notification
-    const toastVariant = notification.type === 'error' ? 'destructive' : 'default';
-    toast({
-      variant: toastVariant,
-      title: notification.title,
-      description: notification.description,
-    });
+    // Show toast notification if enabled
+    if (state.toastsEnabled) {
+      const toastVariant = notification.type === 'error' ? 'destructive' : 'default';
+      toast({
+        variant: toastVariant,
+        title: notification.title,
+        description: notification.description,
+      });
+    }
 
     // Play sound and show browser notification
     playNotificationSound();

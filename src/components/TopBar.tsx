@@ -8,8 +8,7 @@ import {
   Minimize2,
   Cloud,
   CloudOff,
-  Loader2,
-  Box
+  Loader2
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -39,26 +38,7 @@ export const TopBar = ({
   const { t } = useTranslation();
   const { isAuthenticated, login, isSyncing, pendingSync, syncData, lastSynced } = useGoogleDrive();
 
-  const [is3DMode, setIs3DMode] = useState(() => {
-    return localStorage.getItem('theme-3d') === 'true';
-  });
 
-  useEffect(() => {
-    if (is3DMode) {
-      document.body.classList.add('theme-3d');
-    } else {
-      document.body.classList.remove('theme-3d');
-    }
-    localStorage.setItem('theme-3d', String(is3DMode));
-  }, [is3DMode]);
-
-  const toggle3DMode = () => {
-    setIs3DMode(!is3DMode);
-    toast({
-      title: is3DMode ? "Mode 3D désactivé" : "Mode 3D activé",
-      description: is3DMode ? "Retour au style plat standard." : "Profitez des effets de profondeur et d'animation.",
-    });
-  };
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
@@ -120,29 +100,7 @@ export const TopBar = ({
         </TooltipContent>
       </Tooltip>
 
-      {/* 3D Mode Toggle */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={is3DMode ? "default" : "outline"}
-            size="sm"
-            onClick={toggle3DMode}
-            className="relative"
-          >
-            <Box className="h-4 w-4" />
-            <span className="sr-only">Mode 3D</span>
-            {is3DMode && (
-              <Badge
-                variant="secondary"
-                className="absolute -top-1 -right-1 h-2 w-2 p-0 rounded-full bg-primary"
-              />
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{is3DMode ? "Désactiver la 3D" : "Activer la 3D"}</p>
-        </TooltipContent>
-      </Tooltip>
+
 
       {/* Compact Mode Toggle */}
       <Button

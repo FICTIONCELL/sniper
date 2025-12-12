@@ -16,6 +16,7 @@ import { useGoogleDrive } from "@/contexts/GoogleDriveContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDevice } from "@/contexts/DeviceContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useNotification } from "@/contexts/NotificationContext";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Crown, Clock, Key, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
@@ -72,6 +73,7 @@ const Settings = () => {
   const [licenseKey, setLicenseKey] = useState("");
   const [trialEmail, setTrialEmail] = useState("");
   const [activationEmail, setActivationEmail] = useState("");
+  const { state: notificationState, updateSettings: updateNotificationSettings } = useNotification();
 
   const loadDemoData = () => {
     const demoData = generateDemoData();
@@ -351,22 +353,55 @@ const Settings = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  {settings.notifications ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
+                  {notificationState.notificationsEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
                   {t('notifications')}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                {/* Master Switch */}
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <Label htmlFor="notifications-switch" className="text-base">{t('enableNotifications')}</Label>
+                    <Label htmlFor="notifications-master" className="text-base font-medium">{t('enableNotifications') || 'Activer les notifications'}</Label>
                     <p className="text-sm text-muted-foreground">
-                      {t('notificationsDescription')}
+                      {t('notificationsDescription') || 'Activez ou désactivez toutes les notifications de l\'application.'}
                     </p>
                   </div>
                   <Switch
-                    id="notifications-switch"
-                    checked={settings.notifications}
-                    onCheckedChange={handleNotificationsChange}
+                    id="notifications-master"
+                    checked={notificationState.notificationsEnabled}
+                    onCheckedChange={(checked) => updateNotificationSettings({ notificationsEnabled: checked })}
+                  />
+                </div>
+
+                {/* Sound Switch */}
+                <div className="flex items-center justify-between border-t pt-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="notifications-sound" className="text-base">{t('notificationSound') || 'Sons de notification'}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {t('notificationSoundDesc') || 'Jouer un son lors de la réception d\'une notification.'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="notifications-sound"
+                    checked={notificationState.soundEnabled}
+                    onCheckedChange={(checked) => updateNotificationSettings({ soundEnabled: checked })}
+                    disabled={!notificationState.notificationsEnabled}
+                  />
+                </div>
+
+                {/* Toast Switch */}
+                <div className="flex items-center justify-between border-t pt-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="notifications-toast" className="text-base">{t('notificationMessage') || 'Messages de notification'}</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {t('notificationMessageDesc') || 'Afficher les messages pop-up (toasts) à l\'écran.'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="notifications-toast"
+                    checked={notificationState.toastsEnabled}
+                    onCheckedChange={(checked) => updateNotificationSettings({ toastsEnabled: checked })}
+                    disabled={!notificationState.notificationsEnabled}
                   />
                 </div>
               </CardContent>
@@ -798,235 +833,121 @@ const Settings = () => {
                   {subscription.status === 'trial' && (
                     <Badge className="bg-blue-500 hover:bg-blue-600 text-white gap-1">
                       <Clock className="h-3 w-3" />
-                      {t('trialMode') || 'Mode Essai'}
+                      {t('trial') || 'Essai Gratuit'}
                     </Badge>
                   )}
-                  {subscription.status === 'expired' && (
-                    <Badge className="bg-red-500 hover:bg-red-600 text-white gap-1">
+                  {(subscription.status === 'expired' || subscription.status === 'inactive') && (
+                    <Badge variant="destructive" className="gap-1">
                       <XCircle className="h-3 w-3" />
                       {t('expired') || 'Expiré'}
                     </Badge>
                   )}
-                  {subscription.status === 'inactive' && (
-                    <Badge className="bg-gray-500 hover:bg-gray-600 text-white gap-1">
-                      <AlertTriangle className="h-3 w-3" />
-                      {t('inactive') || 'Inactif'}
-                    </Badge>
-                  )}
-                  <span className="text-sm text-muted-foreground">
-                    {subscription.plan === 'trial' && (t('trialPlan') || 'Essai gratuit 30 jours')}
-                    {subscription.plan === 'monthly' && (t('monthlyPlan') || 'Abonnement mensuel')}
-                    {subscription.plan === 'yearly' && (t('yearlyPlan') || 'Abonnement annuel')}
-                    {subscription.plan === 'lifetime' && (t('lifetimePlan') || 'Licence à vie')}
-                  </span>
+                </div>
+                <div className="text-sm font-medium">
+                  {daysRemaining} {t('daysRemaining') || 'jours restants'}
                 </div>
               </div>
 
-              {/* Days Remaining Progress */}
-              {(subscription.status === 'active' || subscription.status === 'trial') && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{t('daysRemaining') || 'Jours restants'}</span>
-                    <span className="font-semibold text-lg">
-                      {daysRemaining} {t('days') || 'jours'}
-                    </span>
-                  </div>
-                  <Progress value={progressPercentage} className="h-3" />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{t('startDate') || 'Début'}: {subscription.startDate ? new Date(subscription.startDate).toLocaleDateString() : '-'}</span>
-                    <span>{t('endDate') || 'Fin'}: {subscription.endDate ? new Date(subscription.endDate).toLocaleDateString() : '-'}</span>
-                  </div>
+              {/* Progress Bar */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{t('usage') || 'Utilisation'}</span>
+                  <span>{progressPercentage}%</span>
                 </div>
-              )}
+                <Progress value={progressPercentage} className="h-2" />
+              </div>
 
-              {/* Start Trial Button */}
-              {subscription.status === 'inactive' && (
-                <div className="pt-4 border-t">
-                  <div className="text-center space-y-4">
-                    <p className="text-muted-foreground">
-                      {t('noActiveSubscription') || 'Vous n\'avez pas d\'abonnement actif.'}
-                    </p>
-                    <div className="space-y-2">
-                      <Label htmlFor="trial-email">{t('email') || 'Email'}</Label>
-                      <Input
-                        id="trial-email"
-                        type="email"
-                        placeholder="votre@email.com"
-                        value={trialEmail}
-                        onChange={(e) => setTrialEmail(e.target.value)}
-                      />
-                    </div>
-                    <Button
-                      onClick={async () => {
-                        if (!trialEmail || !trialEmail.includes('@')) {
-                          toast({
-                            title: t('emailRequired') || 'Email requis',
-                            description: t('emailRequiredDesc') || 'Veuillez entrer une adresse email valide.',
-                            variant: "destructive"
-                          });
-                          return;
-                        }
-                        const result = await startTrial(trialEmail);
-                        if (result.success) {
-                          toast({ title: t('trialStarted') || 'Essai démarré', description: result.message });
-                          setTrialEmail("");
-                        } else {
-                          toast({ title: t('error') || 'Erreur', description: result.message, variant: "destructive" });
-                        }
-                      }}
-                      className="w-full"
-                      size="lg"
-                      disabled={isLoading || !trialEmail}
-                    >
-                      <Clock className="h-4 w-4 mr-2" />
-                      {isLoading ? 'Chargement...' : (t('startFreeTrial') || 'Commencer l\'essai gratuit de 30 jours')}
-                    </Button>
-                  </div>
+              {/* Plan Details */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div>
+                  <p className="text-sm text-muted-foreground">{t('plan') || 'Plan'}</p>
+                  <p className="font-medium">{subscription.plan === 'pro' ? 'Pro' : 'Standard'}</p>
                 </div>
-              )}
+                <div>
+                  <p className="text-sm text-muted-foreground">{t('expiryDate') || 'Date d\'expiration'}</p>
+                  <p className="font-medium">{new Date(subscription.endDate).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-4 flex gap-3">
+                {!isActive && (
+                  <Button className="w-full" onClick={() => document.getElementById('activation-trigger')?.click()}>
+                    <Key className="mr-2 h-4 w-4" />
+                    {t('activateLicense') || 'Activer une licence'}
+                  </Button>
+                )}
+                {isActive && (
+                  <Button variant="outline" className="w-full text-destructive hover:text-destructive" onClick={cancelSubscription}>
+                    {t('cancelSubscription') || 'Annuler l\'abonnement'}
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
 
-          {/* Trial Limits Card - Only show in trial mode */}
-          {isTrial && (
-            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800">
+          {/* Activation Dialog */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button id="activation-trigger" className="hidden">Activate</button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('activateLicense') || 'Activer votre licence'}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t('enterLicenseKey') || 'Entrez votre clé de licence reçue par email.'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>{t('email')}</Label>
+                  <Input
+                    placeholder="email@example.com"
+                    value={activationEmail}
+                    onChange={(e) => setActivationEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('licenseKey') || 'Clé de licence'}</Label>
+                  <Input
+                    placeholder="XXXX-XXXX-XXXX-XXXX"
+                    value={licenseKey}
+                    onChange={(e) => setLicenseKey(e.target.value)}
+                  />
+                </div>
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={() => activateSubscription(licenseKey, activationEmail)} disabled={isLoading}>
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('activate') || 'Activer'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Trial Offer */}
+          {trialAvailable && !isActive && (
+            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
-                  <AlertTriangle className="h-5 w-5" />
-                  {t('trialLimits') || 'Limites du mode essai'}
+                <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                  <Clock className="h-5 w-5" />
+                  {t('startTrial') || 'Essai Gratuit 14 Jours'}
                 </CardTitle>
-                <CardDescription className="text-blue-700 dark:text-blue-300">
-                  {t('trialLimitsDesc') || 'Ces limites s\'appliquent pendant la période d\'essai gratuite.'}
+                <CardDescription className="text-blue-600/80 dark:text-blue-400/80">
+                  {t('trialDesc') || 'Profitez de toutes les fonctionnalités Pro gratuitement pendant 14 jours.'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border">
-                    <div className="text-2xl font-bold text-blue-600">{projects.length}/{limits.maxProjects}</div>
-                    <div className="text-sm text-muted-foreground">{t('projects') || 'Projets'}</div>
-                  </div>
-                  <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border">
-                    <div className="text-2xl font-bold text-blue-600">{blocks.length}/{limits.maxBlocks}</div>
-                    <div className="text-sm text-muted-foreground">{t('blocks') || 'Blocs'}</div>
-                  </div>
-                  <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border">
-                    <div className="text-2xl font-bold text-blue-600">{reserves.length}/{limits.maxReserves}</div>
-                    <div className="text-sm text-muted-foreground">{t('reserves') || 'Réserves'}</div>
-                  </div>
-                  <div className="p-3 bg-white dark:bg-gray-800 rounded-lg border">
-                    <div className="text-2xl font-bold text-blue-600">{receptions.length}/{limits.maxReceptions}</div>
-                    <div className="text-sm text-muted-foreground">{t('receptions') || 'PV'}</div>
-                  </div>
-                </div>
-                <p className="mt-4 text-sm text-blue-700 dark:text-blue-300">
-                  {t('upgradeToPremium') || 'Passez à une licence payante pour des fonctionnalités illimitées.'}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Activate License Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Key className="h-5 w-5" />
-                {t('activateLicense') || 'Activer une licence'}
-              </CardTitle>
-              <CardDescription>
-                {t('activateLicenseDesc') || 'Entrez votre clé de licence pour activer votre abonnement.'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="activation-email">{t('email') || 'Email'}</Label>
-                <Input
-                  id="activation-email"
-                  type="email"
-                  placeholder="votre@email.com"
-                  value={activationEmail}
-                  onChange={(e) => setActivationEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="license-key">{t('licenseKey') || 'Clé de licence'}</Label>
-                <Input
-                  id="license-key"
-                  placeholder="XXXX-XXXX-XXXX-XXXX"
-                  value={licenseKey}
-                  onChange={(e) => setLicenseKey(e.target.value)}
-                />
-              </div>
-              <Button
-                className="w-full"
-                disabled={isLoading || !licenseKey || !activationEmail}
-                onClick={async () => {
-                  if (!activationEmail || !activationEmail.includes('@')) {
-                    toast({
-                      title: t('emailRequired') || 'Email requis',
-                      description: t('emailRequiredDesc') || 'Veuillez entrer une adresse email valide.',
-                      variant: "destructive"
-                    });
-                    return;
-                  }
-                  const result = await activateSubscription(licenseKey, activationEmail);
-                  if (result.success) {
-                    toast({
-                      title: t('licenseActivated') || 'Licence activée',
-                      description: result.message,
-                    });
-                    setLicenseKey("");
-                    setActivationEmail("");
-                  } else {
-                    toast({
-                      title: t('invalidLicense') || 'Licence invalide',
-                      description: result.message,
-                      variant: "destructive"
-                    });
-                  }
-                }}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                {isLoading ? 'Chargement...' : (t('activate') || 'Activer')}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Cancel Subscription (only if active) */}
-          {isActive && (
-            <Card className="border-destructive">
-              <CardHeader>
-                <CardTitle className="text-destructive">{t('dangerZone') || 'Zone dangereuse'}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-base">{t('cancelSubscription') || 'Annuler l\'abonnement'}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {t('cancelSubscriptionDesc') || 'Cette action désactivera votre abonnement.'}
-                    </p>
-                  </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive">
-                        <XCircle className="h-4 w-4 mr-2" />
-                        {t('cancel') || 'Annuler'}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t('confirmCancelSubscription') || 'Confirmer l\'annulation'}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t('confirmCancelSubscriptionDesc') || 'Êtes-vous sûr de vouloir annuler votre abonnement ?'}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{t('no') || 'Non'}</AlertDialogCancel>
-                        <AlertDialogAction onClick={cancelSubscription}>
-                          {t('yesCancel') || 'Oui, annuler'}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                <div className="flex gap-4">
+                  <Input
+                    placeholder="Votre email"
+                    className="bg-white dark:bg-background"
+                    value={trialEmail}
+                    onChange={(e) => setTrialEmail(e.target.value)}
+                  />
+                  <Button onClick={() => startTrial(trialEmail)} disabled={isLoading}>
+                    {t('start') || 'Commencer'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

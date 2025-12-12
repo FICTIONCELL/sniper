@@ -38,7 +38,6 @@ export function AppSidebar() {
 
   const menuItems = [
     { title: t('dashboard'), url: "/", icon: BarChart3 },
-    { title: t('compactMode'), url: "/compact", icon: LayoutGrid },
     { title: t('projects'), url: "/projects", icon: Building2 },
     { title: t('buildings'), url: "/buildings", icon: Layers3 },
     { title: t('reserves'), url: "/reserves", icon: AlertTriangle },
