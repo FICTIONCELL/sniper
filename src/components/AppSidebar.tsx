@@ -10,11 +10,13 @@ import {
   ClipboardCheck,
   Tags,
   Settings,
-  LayoutGrid
+  LayoutGrid,
+  Shield
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NavLink, useLocation } from "react-router-dom";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { useGoogleDrive } from "@/contexts/GoogleDriveContext";
 
 import {
   Sidebar,
@@ -32,6 +34,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const { t } = useTranslation();
+  const { userEmail } = useGoogleDrive();
   const currentPath = location.pathname;
 
   const collapsed = state === "collapsed";
@@ -50,6 +53,14 @@ export function AppSidebar() {
     { title: t('categories'), url: "/categories", icon: Tags },
     { title: t('settings'), url: "/settings", icon: Settings },
   ];
+
+  // Admin-only email
+  const isAdmin = userEmail === 'fictionsell@gmail.com';
+
+  // Add Admin menu item if user is admin
+  if (isAdmin) {
+    menuItems.push({ title: "Admin", url: "/admin", icon: Shield });
+  }
 
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-muted text-primary font-medium" : "hover:bg-muted/50";
