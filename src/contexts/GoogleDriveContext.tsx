@@ -8,6 +8,7 @@ import { GOOGLE_CLIENT_ID } from '@/config';
 interface GoogleDriveContextType {
     isAuthenticated: boolean;
     user: any | null;
+    userEmail: string | null;
     login: () => void;
     logout: () => void;
     syncData: () => Promise<void>;
@@ -26,7 +27,7 @@ const GoogleLoginCapturer = ({ onLoginReady, onLoginSuccess, onLoginError }: any
     const login = useGoogleLogin({
         onSuccess: onLoginSuccess,
         onError: onLoginError,
-        scope: 'https://www.googleapis.com/auth/drive.file',
+        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
     });
 
     useEffect(() => {
@@ -38,6 +39,7 @@ const GoogleLoginCapturer = ({ onLoginReady, onLoginSuccess, onLoginError }: any
 
 export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<any | null>(null);
+    const [userEmail, setUserEmail] = useState<string | null>(null);
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [pendingSync, setPendingSync] = useState(false);
@@ -47,9 +49,25 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const { toast } = useToast();
     const { t } = useTranslation();
 
+    const fetchUserInfo = async (token: string) => {
+        try {
+            const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await response.json();
+            if (data.email) {
+                setUserEmail(data.email);
+            }
+        } catch (error) {
+            console.error("Failed to fetch user info", error);
+        }
+    };
+
     const handleLoginSuccess = (tokenResponse: TokenResponse) => {
         setAccessToken(tokenResponse.access_token);
         setUser(true);
+        fetchUserInfo(tokenResponse.access_token);
+
         toast({
             title: t('connected'),
             description: t('connectionStatus'),
@@ -81,6 +99,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         googleLogout();
         setAccessToken(null);
         setUser(null);
+        setUserEmail(null);
         toast({
             title: t('disconnected'),
             description: "Vous avez été déconnecté de Google Drive.",
@@ -288,6 +307,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         <GoogleDriveContext.Provider value={{
             isAuthenticated: !!accessToken,
             user,
+            userEmail,
             login,
             logout,
             syncData,

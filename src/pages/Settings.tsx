@@ -66,7 +66,7 @@ const Settings = () => {
   const { theme: currentTheme, setTheme: setCurrentTheme } = useTheme();
   const [eraseCode, setEraseCode] = useState("");
 
-  const { isAuthenticated, login, logout, isSyncing, syncData, lastSynced, pendingSync, user } = useGoogleDrive();
+  const { isAuthenticated, login, logout, isSyncing, syncData, lastSynced, pendingSync, user, userEmail } = useGoogleDrive();
   const { currentDevice, devices, removeDevice } = useDevice();
   const { subscription, daysRemaining, progressPercentage, isActive, isTrial, limits, trialAvailable, isLoading, activateSubscription, startTrial, cancelSubscription } = useSubscription();
   const [licenseKey, setLicenseKey] = useState("");
@@ -460,6 +460,11 @@ const Settings = () => {
                     {lastSynced && (
                       <p className="text-xs text-muted-foreground">
                         {t('lastSynced')}: {lastSynced.toLocaleString()}
+                      </p>
+                    )}
+                    {userEmail && (
+                      <p className="text-xs text-muted-foreground font-medium">
+                        {userEmail}
                       </p>
                     )}
                     {pendingSync && (

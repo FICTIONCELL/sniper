@@ -53,9 +53,9 @@ function notificationReducer(state: NotificationState, action: NotificationActio
       };
 
       const notifications = [newNotification, ...state.notifications];
-      
+
       // Auto-delete old notifications if enabled (keep last 50)
-      const filteredNotifications = state.autoDelete 
+      const filteredNotifications = state.autoDelete
         ? notifications.slice(0, 50)
         : notifications;
 
@@ -183,20 +183,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const playNotificationSound = () => {
     if (state.soundEnabled) {
-      // Create a simple notification sound
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
+      try {
+        const audio = new Audio('/alert.mp3');
+        audio.play().catch(e => console.error("Audio play failed", e));
+      } catch (error) {
+        console.error("Failed to play notification sound", error);
+      }
     }
   };
 
@@ -232,7 +224,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // Play sound and show browser notification
     playNotificationSound();
-    
+
     // Add the notification to the new notification object for browser notification
     const newNotification: Notification = {
       ...notification,
@@ -274,7 +266,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const permission = await Notification.requestPermission();
     const granted = permission === 'granted';
-    
+
     if (granted) {
       updateSettings({ browserNotifications: true });
       toast({
