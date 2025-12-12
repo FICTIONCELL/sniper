@@ -237,10 +237,16 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 }
             }
 
-            // Reload the page to refresh all components with new data
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
+            // Trigger custom event to refresh all components without page reload
+            window.dispatchEvent(new Event('sniper-data-loaded'));
+
+            toast({
+                title: "✅ Synchronisation terminée",
+                description: "Vos données sont à jour.",
+                duration: 2000,
+            });
+
+            setIsSyncing(false);
 
         } catch (error) {
             console.error("Load error", error);
