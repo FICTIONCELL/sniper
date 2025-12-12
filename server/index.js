@@ -49,6 +49,23 @@ db.exec(`
     expires_at TEXT,
     FOREIGN KEY (license_id) REFERENCES licenses(id)
   );
+
+  CREATE TABLE IF NOT EXISTS user_profiles (
+    id TEXT PRIMARY KEY,
+    machine_id TEXT UNIQUE NOT NULL,
+    name TEXT,
+    email TEXT,
+    phone TEXT,
+    avatar TEXT,
+    company_logo TEXT,
+    show_logo_in_pv INTEGER DEFAULT 0,
+    subscription_status TEXT,
+    subscription_plan TEXT,
+    subscription_start_date TEXT,
+    subscription_expiry_date TEXT,
+    last_updated TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
 `);
 
 // Middleware
@@ -362,6 +379,92 @@ app.get('/api/admin/stats', adminAuth, (req, res) => {
         totalTrials,
         activeSubscriptions
     });
+});
+
+// ==================== USER PROFILE ENDPOINTS ====================
+
+// Save user profile
+app.post('/api/user-profile/save', (req, res) => {
+    const {
+        machineId,
+        name,
+        email,
+        phone,
+        avatar,
+        companyLogo,
+        showLogoInPV,
+        subscriptionStatus,
+        subscriptionPlan,
+        subscriptionStartDate,
+        subscriptionExpiryDate
+    } = req.body;
+
+    if (!machineId) {
+        return res.status(400).json({ success: false, message: 'Machine ID required' });
+    }
+
+    const now = new Date().toISOString();
+    const id = uuidv4();
+
+    try {
+        // Check if profile exists
+        const existing = db.prepare('SELECT id FROM user_profiles WHERE machine_id = ?').get(machineId);
+
+        if (existing) {
+            // Update existing profile
+            db.prepare(`
+                UPDATE user_profiles 
+                SET name = ?, email = ?, phone = ?, avatar = ?, company_logo = ?, 
+                    show_logo_in_pv = ?, subscription_status = ?, subscription_plan = ?,
+                    subscription_start_date = ?, subscription_expiry_date = ?, last_updated = ?
+                WHERE machine_id = ?
+            `).run(
+                name, email, phone, avatar, companyLogo, showLogoInPV ? 1 : 0,
+                subscriptionStatus, subscriptionPlan, subscriptionStartDate, subscriptionExpiryDate,
+                now, machineId
+            );
+        } else {
+            // Create new profile
+            db.prepare(`
+                INSERT INTO user_profiles (
+                    id, machine_id, name, email, phone, avatar, company_logo, show_logo_in_pv,
+                    subscription_status, subscription_plan, subscription_start_date, subscription_expiry_date,
+                    last_updated, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(
+                id, machineId, name, email, phone, avatar, companyLogo, showLogoInPV ? 1 : 0,
+                subscriptionStatus, subscriptionPlan, subscriptionStartDate, subscriptionExpiryDate,
+                now, now
+            );
+        }
+
+        res.json({ success: true, message: 'Profile saved successfully' });
+    } catch (error) {
+        console.error('Error saving profile:', error);
+        res.status(500).json({ success: false, message: 'Failed to save profile' });
+    }
+});
+
+// Get user profile
+app.get('/api/user-profile/:machineId', (req, res) => {
+    const { machineId } = req.params;
+
+    try {
+        const profile = db.prepare('SELECT * FROM user_profiles WHERE machine_id = ?').get(machineId);
+
+        if (!profile) {
+            return res.status(404).json({ profile: null });
+        }
+
+        // Convert show_logo_in_pv from integer to boolean
+        profile.showLogoInPV = profile.show_logo_in_pv === 1;
+        delete profile.show_logo_in_pv;
+
+        res.json({ profile });
+    } catch (error) {
+        console.error('Error getting profile:', error);
+        res.status(500).json({ error: 'Failed to get profile' });
+    }
 });
 
 // Start server
