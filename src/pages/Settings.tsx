@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Crown, Clock, Key, CheckCircle, XCircle, AlertTriangle, Save } from "lucide-react";
 import { googleDriveService } from "@/services/googleDriveService";
 import { mongoDbService, UserProfileData } from "@/services/mongoDbService";
+import { saveProfileByEmail } from '@/services/profileAutoLoadService';
 
 interface SettingsData {
   notifications: boolean;
@@ -795,9 +796,9 @@ const Settings = () => {
                             };
 
                             // Save to Google Drive
-                            if (accessToken) {
-                                await googleDriveService.saveUserProfile(accessToken, profileData.machineId, profileData);
-                            }
+                            if (accessToken && userEmailForProfile !== 'unknown') {
+                          await saveProfileByEmail(accessToken, userEmailForProfile, profileData);
+                        }
 
                             // Save to Database
                             const result = await mongoDbService.saveProfile(profileData);

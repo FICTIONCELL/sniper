@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useGoogleLogin, googleLogout, TokenResponse, GoogleOAuthProvider } from '@react-oauth/google';
 import { googleDriveService } from '@/services/googleDriveService';
+import { autoLoadProfileOnLogin } from '@/services/profileAutoLoadService';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { GOOGLE_CLIENT_ID } from '@/config';
