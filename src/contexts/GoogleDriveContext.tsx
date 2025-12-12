@@ -223,6 +223,20 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 duration: 1500,
             });
 
+            // Auto-load profile based on email
+            if (userEmail) {
+                try {
+                    await autoLoadProfileOnLogin(token, userEmail);
+                    toast({
+                        title: "👤 Profil chargé",
+                        description: "Votre profil partagé a été appliqué.",
+                        duration: 2000
+                    });
+                } catch (e) {
+                    console.log('No shared profile found, using local profile');
+                }
+            }
+
             // Reload the page to refresh all components with new data
             setTimeout(() => {
                 window.location.reload();
