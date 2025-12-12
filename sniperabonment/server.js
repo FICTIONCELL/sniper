@@ -59,6 +59,10 @@ const License = mongoose.model('License', licenseSchema);
 
 // --- API Endpoints ---
 
+app.get('/', (req, res) => {
+    res.json({ message: 'Sniper Backend is running', status: 'OK' });
+});
+
 // 1. Register Machine
 app.post('/api/register-machine', async (req, res) => {
     const { email, passwordHash, machineId, ip } = req.body;
