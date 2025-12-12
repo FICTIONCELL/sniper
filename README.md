@@ -1,73 +1,182 @@
-# Welcome to your Lovable project
+About Page :
 
-## Project info
+Développeur : Benmoussa Mohammed Amine
 
-**URL**: https://lovable.dev/projects/a166030d-99d5-4d40-91d9-516826d0c9c1
+Professions :
 
-## How can I edit this code?
+Architecte licencié de bâtiment
 
-There are several ways of editing your application.
+Développeur d’applications pour architecture & BTP
 
-**Use Lovable**
+Contact :
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/a166030d-99d5-4d40-91d9-516826d0c9c1) and start prompting.
+Email : fictionsell@gmail.com
 
-Changes made via Lovable will be committed automatically to this repo.
+Téléphone : +213552532725
 
-**Use your preferred IDE**
+Cette application est une plateforme professionnelle de gestion de projets de construction, conçue pour les chefs de chantier, bureaux d’études, conducteurs de travaux et administrateurs.
+Elle permet de créer des projets, gérer des réserves, organiser les tâches par catégorie, bloc, lot, sous-traitant, ajouter des photos, générer des PV, suivre les avancements, et stocker les données directement sur Google Drive de chaque utilisateur.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+L’application fonctionne avec un système d’authentification Google obligatoire, avec gestion des licences, de la période d’abonnement, du device ID et d’un panel admin intégré.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Cette plateforme a été développée avec :
 
-Follow these steps:
+React + TypeScript
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Vite
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+TailwindCSS
 
-# Step 3: Install the necessary dependencies.
-npm i
+shadcn-ui
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+MongoDB (via un backend)
 
-**Edit a file directly in GitHub**
+Google Drive API
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+OAuth2 Google Login
 
-**Use GitHub Codespaces**
+Système de licences et abonnements
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+🚀 Fonctionnalités principales
+🔐 1. Authentification sécurisée Google
 
-## What technologies are used for this project?
+Connexion obligatoire via Gmail
 
-This project is built with:
+Validation du device de l’utilisateur (1 appareil autorisé)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Synchronisation automatique du Drive personnel
 
-## How can I deploy this project?
+📁 2. Stockage Google Drive
 
-Simply open [Lovable](https://lovable.dev/projects/a166030d-99d5-4d40-91d9-516826d0c9c1) and click on Share -> Publish.
+Sauvegarde des photos
 
-## Can I connect a custom domain to my Lovable project?
+Sauvegarde des PV PDF
 
-Yes, you can!
+Sauvegarde des projets
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Dossier privé par utilisateur
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+🧱 3. Gestion avancée des projets
+
+Création / édition des projets
+
+Sélection du projet actif
+
+Organisation par blocs, étages, zones
+
+Tri des réserves par catégories, sous-traitants et statuts
+
+🏷️ 4. Catégories de réserves pré-intégrées
+
+Exemples :
+
+Plomberie
+
+Électricité
+
+Peinture
+
+Menuiserie
+
+Carrelage
+
+Maçonnerie
+
+HVAC
+
+Sécurité incendie
+
+Façade
+
+… et plus (entière liste pré-chargée)
+
+possibilité d’ajouter des catégories personnalisées.
+
+📸 5. Réserves avec photos & géolocalisation
+
+Ajout de photos (stockées dans Google Drive)
+
+Description, statut, catégorie, sous-traitant
+
+Historique des modifications
+
+🧾 6. Génération automatique de PV PDF
+
+Logo personnalisé de l’utilisateur
+
+Informations du projet
+
+Liste des réserves
+
+Photos intégrées
+
+Signature optionnelle
+
+Fichier PDF envoyé dans Google Drive
+
+👤 7. Espace utilisateur
+
+Avatar
+
+Logo d’entreprise
+
+Compte lié à Google Drive
+
+Informations licence + expiration
+
+🛡️ 8. Système de licences
+
+Free / Pro / Enterprise
+
+Date d’expiration
+
+Vérification à chaque connexion
+
+Gestion par l’administrateur
+
+🛠️ 9. Panel administrateur
+
+Liste des utilisateurs
+
+Type de licence
+
+Date d’inscription
+
+ID machine
+
+Nombre de projets et de réserves
+
+Modification / désactivation comptes
+
+🔧 Technologies utilisées
+Frontend
+
+React
+
+TypeScript
+
+Vite
+
+shadcn/ui
+
+Tailwind CSS
+
+Backend
+
+Node.js (Express ou NestJS)
+
+MongoDB (Atlas)
+
+OAuth2 Google Auth
+
+Google Drive API
+
+Outils
+
+GitHub (code + CI/CD)
+
+Lovable (édition + publication)
+
+MongoDB Atlas (cloud DB)
+
+Vercel ou Netlify pour le déploiement frontend
