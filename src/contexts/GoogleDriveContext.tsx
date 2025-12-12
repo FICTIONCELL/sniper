@@ -165,6 +165,13 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const loadDataWithToken = async (token: string) => {
         setIsSyncing(true);
         try {
+            // Step 1: Find file
+            toast({
+                title: "🔍 Recherche...",
+                description: "Recherche de vos données sur Google Drive.",
+                duration: 2000,
+            });
+
             const file = await googleDriveService.findFile(token);
             if (!file) {
                 toast({
@@ -174,9 +181,23 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 return;
             }
 
+            // Step 2: Read file
+            toast({
+                title: "📥 Téléchargement...",
+                description: "Téléchargement de vos données depuis le cloud.",
+                duration: 2000,
+            });
+
             const remoteData = await googleDriveService.readFile(token, file.id);
             const localData = getAllLocalStorageData();
             const mergedData = mergeData(localData, remoteData);
+
+            // Step 3: Save to localStorage
+            toast({
+                title: "💾 Sauvegarde locale...",
+                description: "Application de vos données.",
+                duration: 2000,
+            });
 
             Object.keys(mergedData).forEach(key => {
                 if (typeof mergedData[key] === 'object') {
@@ -195,19 +216,20 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
             sessionStorage.setItem('sniper_temp_user_email', userEmail || '');
 
             toast({
-                title: "Données chargées",
-                description: "Rechargement de l'application...",
+                title: "✅ Chargement terminé",
+                description: "Redémarrage de l'application...",
+                duration: 1500,
             });
 
             // Reload the page to refresh all components with new data
             setTimeout(() => {
                 window.location.reload();
-            }, 500);
+            }, 1500);
 
         } catch (error) {
             console.error("Load error", error);
             toast({
-                title: "Erreur de chargement",
+                title: "❌ Erreur de chargement",
                 description: "Impossible de charger les données.",
                 variant: "destructive",
             });
