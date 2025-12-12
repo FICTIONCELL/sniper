@@ -39,14 +39,14 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 }
 
 // Hooks spécialisés pour chaque entité
-export const useProjects = () => useLocalStorage<Project[]>('projects', []);
-export const useBlocks = () => useLocalStorage<Block[]>('blocks', []);
-export const useApartments = () => useLocalStorage<Apartment[]>('apartments', []);
-export const useCategories = () => useLocalStorage<Category[]>('categories', getDefaultCategories());
-export const useContractors = () => useLocalStorage<Contractor[]>('contractors', []);
-export const useReserves = () => useLocalStorage<Reserve[]>('reserves', []);
-export const useTasks = () => useLocalStorage<Task[]>('tasks', []);
-export const useReceptions = () => useLocalStorage<Reception[]>('receptions', []);
+export const useProjects = () => useLocalStorage<Project[]>('sniper_projects', []);
+export const useBlocks = () => useLocalStorage<Block[]>('sniper_blocks', []);
+export const useApartments = () => useLocalStorage<Apartment[]>('sniper_apartments', []);
+export const useCategories = () => useLocalStorage<Category[]>('sniper_categories', getDefaultCategories());
+export const useContractors = () => useLocalStorage<Contractor[]>('sniper_contractors', []);
+export const useReserves = () => useLocalStorage<Reserve[]>('sniper_reserves', []);
+export const useTasks = () => useLocalStorage<Task[]>('sniper_tasks', []);
+export const useReceptions = () => useLocalStorage<Reception[]>('sniper_receptions', []);
 
 // Utilitaires pour générer des IDs uniques
 export const generateId = () => {
