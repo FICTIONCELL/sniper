@@ -63,38 +63,6 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
     };
 
-    const handleLoginSuccess = (tokenResponse: TokenResponse) => {
-        setAccessToken(tokenResponse.access_token);
-        setUser(true);
-        fetchUserInfo(tokenResponse.access_token);
-
-        toast({
-            title: t('connected'),
-            description: t('connectionStatus'),
-        });
-        checkForRemoteData(tokenResponse.access_token);
-    };
-
-    const handleLoginError = () => {
-        toast({
-            title: t('error'),
-            description: "Impossible de se connecter à Google.",
-            variant: "destructive",
-        });
-    };
-
-    const login = () => {
-        if (loginFn) {
-            loginFn();
-        } else {
-            toast({
-                title: "Configuration requise",
-                description: "L'ID Client Google n'est pas configuré dans src/config.ts",
-                variant: "destructive",
-            });
-        }
-    };
-
     const clearLocalData = () => {
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -104,42 +72,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
             }
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
-    };
-
-    const logout = () => {
-        googleLogout();
-        setAccessToken(null);
-        setUser(null);
-        setUserEmail(null);
-        clearLocalData();
-        toast({
-            title: t('disconnected'),
-            description: "Vous avez été déconnecté. Les données locales ont été effacées.",
-        });
-        // Reload to reset app state completely
-        window.location.reload();
-    };
-
-    const checkForRemoteData = async (token: string) => {
-        try {
-            const file = await googleDriveService.findFile(token);
-            if (file) {
-                toast({
-                    title: "Sauvegarde trouvée",
-                    description: "Une sauvegarde existe sur votre Drive. Voulez-vous la charger ?",
-                    action: (
-                        <button
-                            className="bg-primary text-primary-foreground px-3 py-2 rounded-md text-sm font-medium"
-                            onClick={() => loadDataWithToken(token)}
-                        >
-                            Charger
-                        </button>
-                    ),
-                });
-            }
-        } catch (error) {
-            console.error("Error checking for remote data", error);
-        }
+        localStorage.removeItem('sniper_device_id');
     };
 
     const getAllLocalStorageData = () => {
@@ -155,6 +88,23 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
             }
         }
         return data;
+    };
+
+    const mergeData = (local: any, remote: any) => {
+        const merged = { ...local, ...remote };
+
+        if (local.sniper_devices && remote.sniper_devices) {
+            const localDevices = Array.isArray(local.sniper_devices) ? local.sniper_devices : JSON.parse(local.sniper_devices);
+            const remoteDevices = Array.isArray(remote.sniper_devices) ? remote.sniper_devices : JSON.parse(remote.sniper_devices);
+
+            const deviceMap = new Map();
+            [...remoteDevices, ...localDevices].forEach((d: any) => {
+                deviceMap.set(d.deviceId, d);
+            });
+
+            merged.sniper_devices = Array.from(deviceMap.values());
+        }
+        return merged;
     };
 
     const syncData = async () => {
@@ -196,23 +146,26 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 toast({
                     title: "Aucune sauvegarde trouvée",
                     description: "Aucun fichier de données trouvé sur ce Drive.",
-                    variant: "destructive",
                 });
                 return;
             }
 
-            const data = await googleDriveService.readFile(token, file.id);
+            const remoteData = await googleDriveService.readFile(token, file.id);
+            const localData = getAllLocalStorageData();
+            const mergedData = mergeData(localData, remoteData);
 
-            // Restore to localStorage
-            Object.keys(data).forEach(key => {
-                if (typeof data[key] === 'object') {
-                    localStorage.setItem(key, JSON.stringify(data[key]));
+            Object.keys(mergedData).forEach(key => {
+                if (typeof mergedData[key] === 'object') {
+                    localStorage.setItem(key, JSON.stringify(mergedData[key]));
                 } else {
-                    localStorage.setItem(key, data[key]);
+                    localStorage.setItem(key, mergedData[key]);
                 }
             });
 
-            // Force reload to apply changes
+            if (file) {
+                await googleDriveService.updateFile(token, file.id, mergedData);
+            }
+
             window.location.reload();
 
         } catch (error) {
@@ -225,6 +178,73 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         } finally {
             setIsSyncing(false);
         }
+    };
+
+    const checkForRemoteData = async (token: string) => {
+        try {
+            const file = await googleDriveService.findFile(token);
+            if (file) {
+                toast({
+                    title: "Sauvegarde trouvée",
+                    description: "Une sauvegarde existe sur votre Drive. Voulez-vous la charger ?",
+                    action: (
+                        <button
+                            className="bg-primary text-primary-foreground px-3 py-2 rounded-md text-sm font-medium"
+                            onClick={() => loadDataWithToken(token)}
+                        >
+                            Charger
+                        </button>
+                    ),
+                });
+            }
+        } catch (error) {
+            console.error("Error checking for remote data", error);
+        }
+    };
+
+    const handleLoginSuccess = (tokenResponse: TokenResponse) => {
+        setAccessToken(tokenResponse.access_token);
+        setUser(true);
+        fetchUserInfo(tokenResponse.access_token);
+
+        toast({
+            title: t('connected'),
+            description: t('connectionStatus'),
+        });
+        checkForRemoteData(tokenResponse.access_token);
+    };
+
+    const handleLoginError = () => {
+        toast({
+            title: t('error'),
+            description: "Impossible de se connecter à Google.",
+            variant: "destructive",
+        });
+    };
+
+    const login = () => {
+        if (loginFn) {
+            loginFn();
+        } else {
+            toast({
+                title: "Configuration requise",
+                description: "L'ID Client Google n'est pas configuré dans src/config.ts",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const logout = () => {
+        googleLogout();
+        setAccessToken(null);
+        setUser(null);
+        setUserEmail(null);
+        clearLocalData();
+        toast({
+            title: t('disconnected'),
+            description: "Vous avez été déconnecté. Les données locales ont été effacées.",
+        });
+        window.location.reload();
     };
 
     const loadData = async () => {
@@ -241,10 +261,8 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         const handleDataChange = () => {
             setPendingSync(true);
 
-            // Clear existing timeout
             if (timeoutId) clearTimeout(timeoutId);
 
-            // Set new timeout for 5 seconds
             timeoutId = setTimeout(() => {
                 syncData();
                 setPendingSync(false);
