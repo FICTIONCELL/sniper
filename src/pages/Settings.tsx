@@ -19,7 +19,9 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Clock, Key, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { Crown, Clock, Key, CheckCircle, XCircle, AlertTriangle, Save } from "lucide-react";
+import { googleDriveService } from "@/services/googleDriveService";
+import { mongoDbService, UserProfileData } from "@/services/mongoDbService";
 
 interface SettingsData {
   notifications: boolean;
@@ -74,6 +76,7 @@ const Settings = () => {
   const [trialEmail, setTrialEmail] = useState("");
   const [activationEmail, setActivationEmail] = useState("");
   const { state: notificationState, updateSettings: updateNotificationSettings } = useNotification();
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const loadDemoData = () => {
     const demoData = generateDemoData();

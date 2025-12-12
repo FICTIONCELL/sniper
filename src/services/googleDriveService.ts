@@ -196,4 +196,94 @@ export const googleDriveService = {
             throw error;
         }
     },
+
+    async saveUserProfile(accessToken: string, machineId: string, profileData: any) {
+        try {
+            // Ensure folder exists
+            const folder = await this.ensureFolder(accessToken);
+
+            const fileName = `${machineId}_abonment.json`;
+
+            // Check if file already exists
+            const existingFileResponse = await axios.get(DRIVE_API_URL, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                params: {
+                    q: `name = '${fileName}' and '${folder.id}' in parents and trashed = false`,
+                    spaces: 'drive',
+                },
+            });
+
+            const existingFile = existingFileResponse.data.files[0];
+
+            if (existingFile) {
+                // Update existing file
+                const response = await axios.patch(
+                    `${UPLOAD_API_URL}/${existingFile.id}?uploadType=media`,
+                    JSON.stringify(profileData),
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json',
+                        },
+                    }
+                );
+                return response.data;
+            } else {
+                // Create new file
+                const fileMetadata = {
+                    name: fileName,
+                    mimeType: 'application/json',
+                    parents: [folder.id],
+                };
+
+                const formData = new FormData();
+                formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+                formData.append('file', new Blob([JSON.stringify(profileData)], { type: 'application/json' }));
+
+                const response = await axios.post(`${UPLOAD_API_URL}?uploadType=multipart`, formData, {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                });
+                return response.data;
+            }
+        } catch (error) {
+            console.error('Error saving user profile to Drive:', error);
+            throw error;
+        }
+    },
+
+    async loadUserProfile(accessToken: string, machineId: string) {
+        try {
+            // Ensure folder exists
+            const folder = await this.ensureFolder(accessToken);
+
+            const fileName = `${machineId}_abonment.json`;
+
+            // Find the file
+            const response = await axios.get(DRIVE_API_URL, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                params: {
+                    q: `name = '${fileName}' and '${folder.id}' in parents and trashed = false`,
+                    spaces: 'drive',
+                },
+            });
+
+            const file = response.data.files[0];
+            if (!file) {
+                return null;
+            }
+
+            // Read file content
+            const contentResponse = await axios.get(`${DRIVE_API_URL}/${file.id}`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                params: { alt: 'media' },
+            });
+
+            return contentResponse.data;
+        } catch (error) {
+            console.error('Error loading user profile from Drive:', error);
+            return null;
+        }
+    },
 };
