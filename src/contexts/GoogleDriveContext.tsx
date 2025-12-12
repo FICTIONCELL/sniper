@@ -63,6 +63,30 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
     };
 
+    // Restore session after page reload (for load data flow)
+    useEffect(() => {
+        const tempToken = sessionStorage.getItem('sniper_temp_token');
+        const tempEmail = sessionStorage.getItem('sniper_temp_user_email');
+
+        if (tempToken) {
+            // Restore the session
+            setAccessToken(tempToken);
+            setUser(true);
+            if (tempEmail) {
+                setUserEmail(tempEmail);
+            }
+
+            // Clear the temporary storage
+            sessionStorage.removeItem('sniper_temp_token');
+            sessionStorage.removeItem('sniper_temp_user_email');
+
+            toast({
+                title: "Session restaurée",
+                description: "Vos données ont été chargées avec succès.",
+            });
+        }
+    }, []);
+
     const clearLocalData = () => {
         const keysToRemove: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -166,13 +190,19 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 await googleDriveService.updateFile(token, file.id, mergedData);
             }
 
+            // Save the token to sessionStorage before reload to prevent disconnection
+            sessionStorage.setItem('sniper_temp_token', token);
+            sessionStorage.setItem('sniper_temp_user_email', userEmail || '');
+
             toast({
                 title: "Données chargées",
-                description: "Vos données ont été chargées depuis Google Drive avec succès.",
+                description: "Rechargement de l'application...",
             });
 
-            // Trigger a re-render by dispatching a custom event
-            window.dispatchEvent(new Event('sniper-data-loaded'));
+            // Reload the page to refresh all components with new data
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
 
         } catch (error) {
             console.error("Load error", error);
