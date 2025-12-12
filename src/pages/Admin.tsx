@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, Eye, EyeOff, RefreshCw, Download } from "lucide-react";
 
-const API_URL = "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL || "https://sniperserver.onrender.com";
 
 interface License {
     id: string;

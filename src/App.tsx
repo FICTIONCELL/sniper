@@ -112,6 +112,7 @@ const App = () => {
                           <Route path="/settings" element={<MotionWrapper><Settings /></MotionWrapper>} />
                           <Route path="/documents" element={<MotionWrapper><Documents /></MotionWrapper>} />
                           <Route path="/test-pv" element={<MotionWrapper><TestPV /></MotionWrapper>} />
+                          <Route path="/admin" element={<MotionWrapper><Admin /></MotionWrapper>} />
                           <Route path="*" element={<MotionWrapper><NotFound /></MotionWrapper>} />
                         </Routes>
                       </AnimatePresence>
