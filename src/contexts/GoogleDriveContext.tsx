@@ -321,7 +321,8 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
             title: t('disconnected'),
             description: "Vous avez été déconnecté. Les données locales ont été effacées.",
         });
-        window.location.reload();
+        // Redirect to home page instead of reload
+        window.location.href = '/';
     };
 
     const loadData = async () => {
