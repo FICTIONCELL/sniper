@@ -778,7 +778,8 @@ const Settings = () => {
                         setIsSavingProfile(true);
 
                         try {
-                            const machineId = currentDevice?.deviceId || localStorage.getItem('sniper_device_id') || 'unknown';
+                            const userEmailForProfile = userProfile.email || userEmail || 'unknown';
+                        const machineId = currentDevice?.deviceId || localStorage.getItem('sniper_device_id') || 'unknown';
 
                             const profileData: UserProfileData = {
                                 name: userProfile.name,
