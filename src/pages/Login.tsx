@@ -64,6 +64,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         showLogoInPV: profile.showLogoInPV || false
                     };
                     localStorage.setItem('user_profile', JSON.stringify(userProfile));
+
+                    // Hydrate Subscription Context
+                    const subscriptionData = {
+                        status: profile.subscriptionStatus || 'inactive',
+                        plan: profile.subscriptionPlan || 'trial',
+                        startDate: profile.subscriptionStartDate || '',
+                        endDate: profile.subscriptionExpiryDate || '',
+                        trialUsed: false, // Will be updated if needed
+                        email: profile.email
+                    };
+                    localStorage.setItem('sniper_subscription', JSON.stringify(subscriptionData));
+
                     // Also trigger a storage event to update other components if needed
                     window.dispatchEvent(new Event('storage'));
                 }

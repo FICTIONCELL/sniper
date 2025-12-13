@@ -22,6 +22,16 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// DB Connection Check Middleware
+app.use((req, res, next) => {
+    if (mongoose.connection.readyState !== 1 && !req.path.startsWith('/api/admin')) {
+        // Allow admin to potentially see status even if DB down? No, probably better to fail gracefully.
+        // But for debugging, let's log it.
+        console.error("Database not connected. State:", mongoose.connection.readyState);
+    }
+    next();
+});
+
 // --- Database Setup (MongoDB) ---
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('Connected to MongoDB Atlas'))
@@ -297,6 +307,9 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const adminAuth = (req, res, next) => {
     const pwd = req.headers['x-admin-password'];
     if (pwd === ADMIN_PASSWORD) {
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ error: 'Database not connected' });
+        }
         next();
     } else {
         res.status(401).json({ error: 'Unauthorized' });

@@ -3,9 +3,9 @@ services:
   - type: web
     name: sniper-backend
     env: node
-    rootDir: sniperabonment
-    buildCommand: npm install
-    startCommand: node server.js
+    rootDir: .
+    buildCommand: npm install && cd sniperabonment && npm install
+    startCommand: node sniperabonment/server.js
     envVars:
       - key: MONGODB_URI
         sync: false # User must provide this in Render Dashboard
