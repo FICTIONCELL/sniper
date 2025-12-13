@@ -3,6 +3,7 @@ import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { mongoDbService } from '@/services/mongoDbService';
 
 interface LoginProps {
     onLogin: (user: any) => void;
@@ -49,6 +50,27 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             }
 
             onLogin(user);
+
+            // Fetch and apply profile from DB
+            try {
+                const profile = await mongoDbService.getProfile(user.email);
+                if (profile) {
+                    const userProfile = {
+                        name: profile.name || user.givenName || user.name || '',
+                        email: profile.email || user.email || '',
+                        phone: profile.phone || '',
+                        avatar: profile.avatar || user.imageUrl || '',
+                        companyLogo: profile.companyLogo || '',
+                        showLogoInPV: profile.showLogoInPV || false
+                    };
+                    localStorage.setItem('user_profile', JSON.stringify(userProfile));
+                    // Also trigger a storage event to update other components if needed
+                    window.dispatchEvent(new Event('storage'));
+                }
+            } catch (err) {
+                console.error("Failed to load profile from DB", err);
+            }
+
             navigate('/');
             toast.success(`Welcome, ${user.givenName || user.name || 'User'}!`);
 

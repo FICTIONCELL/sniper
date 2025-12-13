@@ -36,9 +36,9 @@ export const mongoDbService = {
         }
     },
 
-    async getProfile(machineId: string): Promise<UserProfileData | null> {
+    async getProfile(email: string): Promise<UserProfileData | null> {
         try {
-            const response = await axios.get(`${API_URL}/api/user-profile/${machineId}`);
+            const response = await axios.get(`${API_URL}/api/user-profile/${email}`);
             return response.data.profile;
         } catch (error: any) {
             console.error('Error getting profile from MongoDB:', error);

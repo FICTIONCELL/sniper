@@ -34,6 +34,13 @@ const userSchema = new mongoose.Schema({
     passwordHash: String,
     machineId: String,
     ip: String,
+    // Profile Data
+    name: String,
+    phone: String,
+    avatar: String, // Base64 or URL
+    companyLogo: String, // Base64 or URL
+    showLogoInPV: { type: Boolean, default: false },
+
     trialUsed: { type: Boolean, default: false },
     licenseType: { type: String, default: 'none' },
     expires: Date,
@@ -207,8 +214,85 @@ app.post('/api/validate-license', async (req, res) => {
     }
 });
 
+// 5. Save User Profile
+app.post('/api/user-profile/save', async (req, res) => {
+    const { email, name, phone, avatar, companyLogo, showLogoInPV, machineId } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    try {
+        let user = await User.findOne({ email });
+
+        if (user) {
+            user.name = name || user.name;
+            user.phone = phone || user.phone;
+            user.avatar = avatar || user.avatar;
+            user.companyLogo = companyLogo || user.companyLogo;
+            if (showLogoInPV !== undefined) user.showLogoInPV = showLogoInPV;
+            if (machineId) user.machineId = machineId; // Update machine ID if provided
+
+            await user.save();
+            return res.json({ success: true, message: 'Profile updated', user });
+        } else {
+            // Create new user if not exists (auto-register)
+            user = new User({
+                id: uuidv4(),
+                email,
+                name,
+                phone,
+                avatar,
+                companyLogo,
+                showLogoInPV,
+                machineId,
+                licenseType: 'none'
+            });
+            await user.save();
+            return res.json({ success: true, message: 'Profile created', user });
+        }
+    } catch (error) {
+        console.error("Save profile error:", error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
+// 6. Get User Profile
+app.get('/api/user-profile/:email', async (req, res) => {
+    const { email } = req.params;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Construct profile object matching frontend interface
+        const profile = {
+            name: user.name || '',
+            email: user.email,
+            phone: user.phone || '',
+            avatar: user.avatar || '',
+            companyLogo: user.companyLogo || '',
+            showLogoInPV: user.showLogoInPV || false,
+            subscriptionStatus: user.licenseType === 'none' ? 'inactive' : 'active', // Simplified logic
+            subscriptionPlan: user.licenseType,
+            subscriptionStartDate: user.createdAt, // Approx
+            subscriptionExpiryDate: user.expires,
+            machineId: user.machineId,
+            lastUpdated: new Date().toISOString()
+        };
+
+        res.json({ success: true, profile });
+    } catch (error) {
+        console.error("Get profile error:", error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+});
+
 // --- Admin Auth Middleware ---
-const ADMIN_PASSWORD = '127.0.0.1';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 const adminAuth = (req, res, next) => {
     const pwd = req.headers['x-admin-password'];
@@ -396,6 +480,16 @@ app.delete('/api/admin/licenses/:id', adminAuth, async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Error deleting license' });
     }
+});
+
+// --- Serve React Frontend ---
+const distPath = path.join(__dirname, '../dist');
+app.use(express.static(distPath));
+
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.listen(PORT, () => {
