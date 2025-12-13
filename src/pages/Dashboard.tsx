@@ -31,8 +31,8 @@ const Dashboard = () => {
   const { t, language } = useTranslation();
 
   return (
-    <div className="p-6 space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <div className="flex justify-between items-center">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">{t('dashboard')}</h1>
           <p className="text-muted-foreground">{t('welcomeMessage')}</p>

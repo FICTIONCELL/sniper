@@ -9,9 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, Eye, EyeOff, RefreshCw, Download } from "lucide-react";
+import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, Eye, EyeOff, RefreshCw, Download, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Capacitor } from "@capacitor/core";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://sniperserver.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "https://sniper-rptn.onrender.com";
 
 interface License {
     id: string;
@@ -71,9 +73,13 @@ const Admin = () => {
     const [newLicensePlan, setNewLicensePlan] = useState<string>("yearly");
     const [newLicenseNotes, setNewLicenseNotes] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [loginError, setLoginError] = useState<string | null>(null);
 
     const handleLogin = async () => {
+        setLoginError(null);
+        setIsLoading(true);
         try {
+            console.log("Attempting login to:", `${API_URL}/api/admin/stats`);
             const response = await fetch(`${API_URL}/api/admin/stats`, {
                 headers: { "x-admin-password": password }
             });
@@ -84,11 +90,33 @@ const Admin = () => {
                 loadAllData(password);
                 toast({ title: "Connexion réussie", description: "Bienvenue dans le panneau d'administration." });
             } else {
-                toast({ title: "Erreur", description: "Mot de passe incorrect.", variant: "destructive" });
+                if (response.status === 401 || response.status === 403) {
+                    setLoginError("Mot de passe incorrect.");
+                } else if (response.status === 500) {
+                    setLoginError("Erreur serveur (500). Le mot de passe est peut-être incorrect ou le serveur rencontre un problème.");
+                } else {
+                    setLoginError(`Erreur serveur: ${response.status}`);
+                }
+                toast({ title: "Erreur", description: "Échec de la connexion.", variant: "destructive" });
             }
         } catch (error) {
-            toast({ title: "Erreur", description: "Impossible de se connecter au serveur.", variant: "destructive" });
+            console.error("Login error:", error);
+            let errorMessage = "Impossible de se connecter au serveur. Vérifiez votre connexion internet.";
+
+            // Only show localhost error if API_URL actually contains localhost or 127.0.0.1
+            if (Capacitor.isNativePlatform()) {
+                if (API_URL.includes("localhost") || API_URL.includes("127.0.0.1")) {
+                    errorMessage = "Erreur configuration: 'localhost' détecté sur Android. L'application mobile doit utiliser une URL publique (ex: https://sniper-rptn.onrender.com). Contactez le support.";
+                } else {
+                    // On mobile with correct URL, provide more helpful error message
+                    errorMessage = `Impossible de se connecter au serveur (${API_URL}). Vérifiez que le serveur est en ligne et que vous avez une connexion internet.`;
+                }
+            }
+
+            setLoginError(errorMessage);
+            toast({ title: "Erreur de connexion", description: errorMessage, variant: "destructive" });
         }
+        setIsLoading(false);
     };
 
     const loadAllData = async (pwd: string) => {
@@ -264,6 +292,13 @@ const Admin = () => {
                         <CardDescription>Entrez le mot de passe administrateur</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        {loginError && (
+                            <Alert variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Erreur</AlertTitle>
+                                <AlertDescription>{loginError}</AlertDescription>
+                            </Alert>
+                        )}
                         <div className="space-y-2">
                             <Label>Mot de passe</Label>
                             <div className="relative">
@@ -285,8 +320,8 @@ const Admin = () => {
                                 </Button>
                             </div>
                         </div>
-                        <Button className="w-full" onClick={handleLogin}>
-                            Connexion
+                        <Button className="w-full" onClick={handleLogin} disabled={isLoading}>
+                            {isLoading ? "Connexion..." : "Connexion"}
                         </Button>
                     </CardContent>
                 </Card>
@@ -295,72 +330,74 @@ const Admin = () => {
     }
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="p-4 md:p-6 space-y-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Administration des Licences</h1>
-                    <p className="text-muted-foreground">Gérez les licences, abonnements et essais</p>
+                    <h1 className="text-2xl md:text-3xl font-bold">Administration</h1>
+                    <p className="text-muted-foreground">Gérez les licences et abonnements</p>
                 </div>
-                <Button variant="outline" onClick={() => loadAllData(adminPassword)} disabled={isLoading}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                    Actualiser
-                </Button>
-                <Button variant="default" onClick={handleDownloadReport} disabled={isLoading || subscriptions.length === 0}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Télécharger Rapport
-                </Button>
+                <div className="flex gap-2 w-full md:w-auto">
+                    <Button variant="outline" onClick={() => loadAllData(adminPassword)} disabled={isLoading} className="flex-1 md:flex-none">
+                        <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+                        Actualiser
+                    </Button>
+                    <Button variant="default" onClick={handleDownloadReport} disabled={isLoading || subscriptions.length === 0} className="flex-1 md:flex-none">
+                        <Download className="h-4 w-4 mr-2" />
+                        Export CSV
+                    </Button>
+                </div>
             </div>
 
             {/* Stats Cards */}
             {stats && (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Licences Total</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                            <CardTitle className="text-sm font-medium">Licences</CardTitle>
                             <Key className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-4 pt-0">
                             <div className="text-2xl font-bold">{stats.totalLicenses}</div>
                             <p className="text-xs text-muted-foreground">
-                                {stats.activeLicenses} disponibles, {stats.usedLicenses} utilisées
+                                {stats.activeLicenses} dispo
                             </p>
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Essais Utilisés</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                            <CardTitle className="text-sm font-medium">Essais</CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-4 pt-0">
                             <div className="text-2xl font-bold">{stats.totalTrials}</div>
-                            <p className="text-xs text-muted-foreground">Périodes d'essai consommées</p>
+                            <p className="text-xs text-muted-foreground">Consommés</p>
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Abonnements Actifs</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                            <CardTitle className="text-sm font-medium">Actifs</CardTitle>
                             <BarChart3 className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-4 pt-0">
                             <div className="text-2xl font-bold">{stats.activeSubscriptions}</div>
-                            <p className="text-xs text-muted-foreground">Utilisateurs actifs</p>
+                            <p className="text-xs text-muted-foreground">Utilisateurs</p>
                         </CardContent>
                     </Card>
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-sm font-medium">Licences Révoquées</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                            <CardTitle className="text-sm font-medium">Révoqués</CardTitle>
                             <Ban className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-4 pt-0">
                             <div className="text-2xl font-bold text-red-500">{stats.revokedLicenses}</div>
-                            <p className="text-xs text-muted-foreground">Licences désactivées</p>
+                            <p className="text-xs text-muted-foreground">Bannis</p>
                         </CardContent>
                     </Card>
                 </div>
             )}
 
             <Tabs defaultValue="licenses" className="space-y-4">
-                <TabsList>
+                <TabsList className="w-full justify-start overflow-x-auto">
                     <TabsTrigger value="licenses">Licences</TabsTrigger>
                     <TabsTrigger value="trials">Essais</TabsTrigger>
                     <TabsTrigger value="subscriptions">Abonnements</TabsTrigger>
@@ -373,11 +410,11 @@ const Admin = () => {
                             <CardTitle>Générer une nouvelle licence</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex gap-4 items-end">
-                                <div className="space-y-2">
+                            <div className="flex flex-col md:flex-row gap-4 items-end">
+                                <div className="space-y-2 w-full md:w-auto">
                                     <Label>Type de plan</Label>
                                     <Select value={newLicensePlan} onValueChange={setNewLicensePlan}>
-                                        <SelectTrigger className="w-40">
+                                        <SelectTrigger className="w-full md:w-40">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -387,15 +424,15 @@ const Admin = () => {
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="flex-1 space-y-2">
+                                <div className="flex-1 space-y-2 w-full">
                                     <Label>Notes (optionnel)</Label>
                                     <Input
                                         value={newLicenseNotes}
                                         onChange={(e) => setNewLicenseNotes(e.target.value)}
-                                        placeholder="Ex: Client XYZ, Projet ABC..."
+                                        placeholder="Ex: Client XYZ..."
                                     />
                                 </div>
-                                <Button onClick={generateLicense}>
+                                <Button onClick={generateLicense} className="w-full md:w-auto">
                                     <Plus className="h-4 w-4 mr-2" />
                                     Générer
                                 </Button>
@@ -407,96 +444,98 @@ const Admin = () => {
                         <CardHeader>
                             <CardTitle>Liste des licences ({licenses.length})</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Clé</TableHead>
-                                        <TableHead>Plan</TableHead>
-                                        <TableHead>Statut</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Créée le</TableHead>
-                                        <TableHead>Expire le</TableHead>
-                                        <TableHead>Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {licenses.map((license) => (
-                                        <TableRow key={license.id}>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <code className="text-xs bg-muted px-2 py-1 rounded">{license.key}</code>
-                                                    <Button variant="ghost" size="sm" onClick={() => copyToClipboard(license.key)}>
-                                                        <Copy className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>{getPlanBadge(license.plan)}</TableCell>
-                                            <TableCell>{getStatusBadge(license.status)}</TableCell>
-                                            <TableCell>{license.email || "-"}</TableCell>
-                                            <TableCell>{new Date(license.created_at).toLocaleDateString()}</TableCell>
-                                            <TableCell>
-                                                {license.expires_at ? new Date(license.expires_at).toLocaleDateString() : "-"}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex gap-1">
-                                                    {license.status !== "revoked" && (
+                        <CardContent className="p-0 md:p-6">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Clé</TableHead>
+                                            <TableHead>Plan</TableHead>
+                                            <TableHead>Statut</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Créée le</TableHead>
+                                            <TableHead>Expire le</TableHead>
+                                            <TableHead>Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {licenses.map((license) => (
+                                            <TableRow key={license.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <code className="text-xs bg-muted px-2 py-1 rounded whitespace-nowrap">{license.key}</code>
+                                                        <Button variant="ghost" size="sm" onClick={() => copyToClipboard(license.key)}>
+                                                            <Copy className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{getPlanBadge(license.plan)}</TableCell>
+                                                <TableCell>{getStatusBadge(license.status)}</TableCell>
+                                                <TableCell>{license.email || "-"}</TableCell>
+                                                <TableCell className="whitespace-nowrap">{new Date(license.created_at).toLocaleDateString()}</TableCell>
+                                                <TableCell className="whitespace-nowrap">
+                                                    {license.expires_at ? new Date(license.expires_at).toLocaleDateString() : "-"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex gap-1">
+                                                        {license.status !== "revoked" && (
+                                                            <AlertDialog>
+                                                                <AlertDialogTrigger asChild>
+                                                                    <Button variant="outline" size="sm">
+                                                                        <Ban className="h-3 w-3" />
+                                                                    </Button>
+                                                                </AlertDialogTrigger>
+                                                                <AlertDialogContent>
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle>Révoquer la licence?</AlertDialogTitle>
+                                                                        <AlertDialogDescription>
+                                                                            Cette action désactivera la licence.
+                                                                        </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                                                        <AlertDialogAction onClick={() => revokeLicense(license.id)}>
+                                                                            Révoquer
+                                                                        </AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+                                                        )}
                                                         <AlertDialog>
                                                             <AlertDialogTrigger asChild>
-                                                                <Button variant="outline" size="sm">
-                                                                    <Ban className="h-3 w-3" />
+                                                                <Button variant="destructive" size="sm">
+                                                                    <Trash2 className="h-3 w-3" />
                                                                 </Button>
                                                             </AlertDialogTrigger>
                                                             <AlertDialogContent>
                                                                 <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Révoquer la licence?</AlertDialogTitle>
+                                                                    <AlertDialogTitle>Supprimer?</AlertDialogTitle>
                                                                     <AlertDialogDescription>
-                                                                        Cette action désactivera la licence. L'utilisateur ne pourra plus l'utiliser.
+                                                                        Irréversible.
                                                                     </AlertDialogDescription>
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
                                                                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => revokeLicense(license.id)}>
-                                                                        Révoquer
+                                                                    <AlertDialogAction onClick={() => deleteLicense(license.id)}>
+                                                                        Supprimer
                                                                     </AlertDialogAction>
                                                                 </AlertDialogFooter>
                                                             </AlertDialogContent>
                                                         </AlertDialog>
-                                                    )}
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button variant="destructive" size="sm">
-                                                                <Trash2 className="h-3 w-3" />
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Supprimer la licence?</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Cette action est irréversible.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => deleteLicense(license.id)}>
-                                                                    Supprimer
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {licenses.length === 0 && (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                                                Aucune licence générée
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {licenses.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                                                    Aucune licence générée
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -506,44 +545,43 @@ const Admin = () => {
                     <Card>
                         <CardHeader>
                             <CardTitle>Essais utilisés ({trials.length})</CardTitle>
-                            <CardDescription>
-                                Liste des appareils et emails ayant utilisé la période d'essai
-                            </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Appareil</TableHead>
-                                        <TableHead>Machine ID</TableHead>
-                                        <TableHead>Début</TableHead>
-                                        <TableHead>Fin</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {trials.map((trial) => (
-                                        <TableRow key={trial.id}>
-                                            <TableCell>{trial.email}</TableCell>
-                                            <TableCell>{trial.device_name}</TableCell>
-                                            <TableCell>
-                                                <code className="text-xs bg-muted px-2 py-1 rounded">
-                                                    {trial.machine_id.substring(0, 8)}...
-                                                </code>
-                                            </TableCell>
-                                            <TableCell>{new Date(trial.started_at).toLocaleDateString()}</TableCell>
-                                            <TableCell>{new Date(trial.expired_at).toLocaleDateString()}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {trials.length === 0 && (
+                        <CardContent className="p-0 md:p-6">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                                                Aucun essai utilisé
-                                            </TableCell>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Appareil</TableHead>
+                                            <TableHead>Machine ID</TableHead>
+                                            <TableHead>Début</TableHead>
+                                            <TableHead>Fin</TableHead>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {trials.map((trial) => (
+                                            <TableRow key={trial.id}>
+                                                <TableCell>{trial.email}</TableCell>
+                                                <TableCell>{trial.device_name}</TableCell>
+                                                <TableCell>
+                                                    <code className="text-xs bg-muted px-2 py-1 rounded whitespace-nowrap">
+                                                        {trial.machine_id.substring(0, 8)}...
+                                                    </code>
+                                                </TableCell>
+                                                <TableCell className="whitespace-nowrap">{new Date(trial.started_at).toLocaleDateString()}</TableCell>
+                                                <TableCell className="whitespace-nowrap">{new Date(trial.expired_at).toLocaleDateString()}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {trials.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                                                    Aucun essai utilisé
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -554,46 +592,48 @@ const Admin = () => {
                         <CardHeader>
                             <CardTitle>Abonnements ({subscriptions.length})</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Plan</TableHead>
-                                        <TableHead>Statut</TableHead>
-                                        <TableHead>Licence</TableHead>
-                                        <TableHead>Début</TableHead>
-                                        <TableHead>Expiration</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {subscriptions.map((sub) => (
-                                        <TableRow key={sub.id}>
-                                            <TableCell>{sub.email}</TableCell>
-                                            <TableCell>{getPlanBadge(sub.plan)}</TableCell>
-                                            <TableCell>{getStatusBadge(sub.status)}</TableCell>
-                                            <TableCell>
-                                                {sub.license_key ? (
-                                                    <code className="text-xs bg-muted px-2 py-1 rounded">{sub.license_key}</code>
-                                                ) : (
-                                                    "-"
-                                                )}
-                                            </TableCell>
-                                            <TableCell>{new Date(sub.started_at).toLocaleDateString()}</TableCell>
-                                            <TableCell>
-                                                {sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : "-"}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {subscriptions.length === 0 && (
+                        <CardContent className="p-0 md:p-6">
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                                Aucun abonnement
-                                            </TableCell>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Plan</TableHead>
+                                            <TableHead>Statut</TableHead>
+                                            <TableHead>Licence</TableHead>
+                                            <TableHead>Début</TableHead>
+                                            <TableHead>Expiration</TableHead>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {subscriptions.map((sub) => (
+                                            <TableRow key={sub.id}>
+                                                <TableCell>{sub.email}</TableCell>
+                                                <TableCell>{getPlanBadge(sub.plan)}</TableCell>
+                                                <TableCell>{getStatusBadge(sub.status)}</TableCell>
+                                                <TableCell>
+                                                    {sub.license_key ? (
+                                                        <code className="text-xs bg-muted px-2 py-1 rounded whitespace-nowrap">{sub.license_key}</code>
+                                                    ) : (
+                                                        "-"
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="whitespace-nowrap">{new Date(sub.started_at).toLocaleDateString()}</TableCell>
+                                                <TableCell className="whitespace-nowrap">
+                                                    {sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : "-"}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {subscriptions.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                                                    Aucun abonnement
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

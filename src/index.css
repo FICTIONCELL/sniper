@@ -97,10 +97,37 @@ All colors MUST be HSL.
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  /* Ensure all containers are responsive */
+  #root {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Prevent images and media from overflowing */
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Ensure tables are responsive */
+  table {
+    max-width: 100%;
+    overflow-x: auto;
+    display: block;
   }
 }
 
@@ -108,11 +135,11 @@ All colors MUST be HSL.
   .perspective-1000 {
     perspective: 1000px;
   }
-  
+
   .transform-style-3d {
     transform-style: preserve-3d;
   }
-  
+
   .backface-hidden {
     backface-visibility: hidden;
   }
@@ -120,7 +147,7 @@ All colors MUST be HSL.
   .theme-3d .card-3d {
     @apply transition-all duration-300 ease-out;
     transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1);
-    box-shadow: 
+    box-shadow:
       0 10px 15px -3px rgba(0, 0, 0, 0.1),
       0 4px 6px -2px rgba(0, 0, 0, 0.05),
       0 0 0 1px rgba(255, 255, 255, 0.1) inset;
@@ -128,7 +155,7 @@ All colors MUST be HSL.
 
   .theme-3d .card-3d:hover {
     transform: perspective(1000px) rotateX(2deg) rotateY(2deg) scale(1.02);
-    box-shadow: 
+    box-shadow:
       20px 20px 60px -15px rgba(0, 0, 0, 0.3),
       -5px -5px 20px rgba(255, 255, 255, 0.1) inset;
   }
@@ -146,7 +173,7 @@ All colors MUST be HSL.
   .theme-3d .glass-panel {
     @apply bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl;
   }
-  
+
   .dark .theme-3d .glass-panel {
     @apply bg-black/20 border-white/10;
   }

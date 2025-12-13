@@ -8,13 +8,18 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
     allowNavigation: [
       'https://thesniper.onrender.com',
-      'https://sniperserver.onrender.com',
+      'https://sniper-rptn.onrender.com',
       'https://accounts.google.com',
       'https://*.googleapis.com'
     ],
     cleartext: true
   },
   plugins: {
+    GoogleAuth: {
+      scopes: ['profile', 'email'],
+      serverClientId: '884107338123-00mgjgsask7h7asis26gaq3oc3tvorgd.apps.googleusercontent.com',
+      forceCodeForRefreshToken: true,
+    },
     SplashScreen: {
       launchShowDuration: 2000,
       backgroundColor: "#ffffff",

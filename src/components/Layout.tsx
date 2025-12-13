@@ -26,12 +26,14 @@ export function Layout({ children }: LayoutProps) {
         <div className="min-h-screen flex w-full">
           <AppSidebar />
           <div className="flex-1 flex flex-col">
-            <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center px-4 gap-4">
-              <SidebarTrigger />
-              <div className="flex-1 flex items-center justify-between">
-                <div className="flex items-center gap-4 flex-1">
-                  <h1 className="text-lg font-semibold">{t('appTitle')}</h1>
-                  <SearchBar onSearch={handleSearch} />
+            <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center px-3 md:px-4 gap-2 md:gap-4 sticky top-0 z-10">
+              <SidebarTrigger className="shrink-0" />
+              <div className="flex-1 flex items-center justify-between gap-2 overflow-hidden">
+                <div className="flex items-center gap-2 md:gap-4 flex-1 overflow-hidden">
+                  <h1 className="text-lg font-semibold truncate hidden md:block">{t('appTitle')}</h1>
+                  <div className="flex-1 max-w-md">
+                    <SearchBar onSearch={handleSearch} />
+                  </div>
                 </div>
                 <TopBar
                   onCompactModeToggle={() => setIsCompactMode(!isCompactMode)}

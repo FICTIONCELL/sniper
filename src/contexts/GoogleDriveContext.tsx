@@ -1,17 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useGoogleLogin, googleLogout, TokenResponse, GoogleOAuthProvider } from '@react-oauth/google';
+import { googleLogout } from '@react-oauth/google'; // Keep for web logout if needed, or replace
 import { googleDriveService } from '@/services/googleDriveService';
 import { autoLoadProfileOnLogin } from '@/services/profileAutoLoadService';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { GOOGLE_CLIENT_ID } from '@/config';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
 
 interface GoogleDriveContextType {
     isAuthenticated: boolean;
     user: any | null;
     userEmail: string | null;
-    login: () => void;
-    logout: () => void;
+    login: () => Promise<void>;
+    logout: () => Promise<void>;
     syncData: () => Promise<void>;
     loadData: () => Promise<void>;
     isSyncing: boolean;
@@ -24,21 +26,6 @@ interface GoogleDriveContextType {
 
 const GoogleDriveContext = createContext<GoogleDriveContextType | undefined>(undefined);
 
-// Helper component to capture the login hook
-const GoogleLoginCapturer = ({ onLoginReady, onLoginSuccess, onLoginError }: any) => {
-    const login = useGoogleLogin({
-        onSuccess: onLoginSuccess,
-        onError: onLoginError,
-        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email',
-    });
-
-    useEffect(() => {
-        onLoginReady(() => login);
-    }, [login, onLoginReady]);
-
-    return null;
-};
-
 export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<any | null>(null);
     const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -46,10 +33,19 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const [isSyncing, setIsSyncing] = useState(false);
     const [pendingSync, setPendingSync] = useState(false);
     const [lastSynced, setLastSynced] = useState<Date | null>(null);
-    const [loginFn, setLoginFn] = useState<(() => void) | null>(null);
 
     const { toast } = useToast();
     const { t } = useTranslation();
+
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) {
+            GoogleAuth.initialize({
+                clientId: '884107338123-00mgjgsask7h7asis26gaq3oc3tvorgd.apps.googleusercontent.com',
+                scopes: ['profile', 'email', 'https://www.googleapis.com/auth/drive.file'],
+                grantOfflineAccess: true,
+            });
+        }
+    }, []);
 
     const fetchUserInfo = async (token: string) => {
         try {
@@ -279,50 +275,50 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
     };
 
-    const handleLoginSuccess = (tokenResponse: TokenResponse) => {
-        setAccessToken(tokenResponse.access_token);
-        setUser(true);
-        fetchUserInfo(tokenResponse.access_token);
+    const login = async () => {
+        try {
+            const user = await GoogleAuth.signIn();
 
-        toast({
-            title: t('connected'),
-            description: t('connectionStatus'),
-        });
-        checkForRemoteData(tokenResponse.access_token);
-    };
+            // Handle both web and native response structures
+            const token = user.authentication.accessToken;
+            const email = user.email;
 
-    const handleLoginError = () => {
-        toast({
-            title: t('error'),
-            description: "Impossible de se connecter à Google.",
-            variant: "destructive",
-        });
-    };
+            setAccessToken(token);
+            setUser(true);
+            setUserEmail(email);
 
-    const login = () => {
-        if (loginFn) {
-            loginFn();
-        } else {
             toast({
-                title: "Configuration requise",
-                description: "L'ID Client Google n'est pas configuré dans src/config.ts",
+                title: t('connected'),
+                description: t('connectionStatus'),
+            });
+
+            checkForRemoteData(token);
+        } catch (error) {
+            console.error("Google Sign-In Error:", error);
+            toast({
+                title: t('error'),
+                description: "Impossible de se connecter à Google.",
                 variant: "destructive",
             });
         }
     };
 
-    const logout = () => {
-        googleLogout();
-        setAccessToken(null);
-        setUser(null);
-        setUserEmail(null);
-        clearLocalData();
-        toast({
-            title: t('disconnected'),
-            description: "Vous avez été déconnecté. Les données locales ont été effacées.",
-        });
-        // Redirect to home page instead of reload
-        window.location.href = '/';
+    const logout = async () => {
+        try {
+            await GoogleAuth.signOut();
+            setAccessToken(null);
+            setUser(null);
+            setUserEmail(null);
+            clearLocalData();
+            toast({
+                title: t('disconnected'),
+                description: "Vous avez été déconnecté. Les données locales ont été effacées.",
+            });
+            // Redirect to home page instead of reload
+            window.location.href = '/';
+        } catch (error) {
+            console.error("Logout Error:", error);
+        }
     };
 
     const loadData = async () => {
@@ -429,15 +425,6 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
             uploadDocument,
             getDocuments
         }}>
-            {GOOGLE_CLIENT_ID && (
-                <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-                    <GoogleLoginCapturer
-                        onLoginReady={setLoginFn}
-                        onLoginSuccess={handleLoginSuccess}
-                        onLoginError={handleLoginError}
-                    />
-                </GoogleOAuthProvider>
-            )}
             {children}
         </GoogleDriveContext.Provider>
     );

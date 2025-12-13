@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://sniperserver.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || 'https://sniper-rptn.onrender.com';
 
 export interface UserProfileData {
     // User Profile
