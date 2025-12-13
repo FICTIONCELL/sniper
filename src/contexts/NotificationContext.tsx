@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from './TranslationContext';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
 
 export interface Notification {
   id: string;
@@ -145,6 +147,27 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { toast } = useToast();
   const { t } = useTranslation();
 
+  // Initialize Local Notifications
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      LocalNotifications.createChannel({
+        id: 'default',
+        name: 'Default',
+        importance: 5,
+        description: 'General Notifications',
+        sound: 'alert.mp3',
+        visibility: 1,
+        vibration: true,
+      }).then(() => console.log('Notification channel created'))
+        .catch(err => console.error('Error creating notification channel', err));
+
+      LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
+        console.log('Notification action performed', notification);
+        // Handle navigation or action here if needed
+      });
+    }
+  }, []);
+
   // Load notifications from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('notifications');
@@ -187,34 +210,43 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }));
   }, [state.soundEnabled, state.toastsEnabled, state.notificationsEnabled, state.browserNotifications, state.autoDelete]);
 
-  const playNotificationSound = () => {
+  const playNotificationSound = async () => {
     if (state.soundEnabled && state.notificationsEnabled) {
       try {
         const audio = new Audio('/alert.mp3');
-        audio.volume = 0.5; // Set volume to 50%
-
-        // Try to play the audio
-        const playPromise = audio.play();
-
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              console.log('Notification sound played successfully');
-            })
-            .catch(error => {
-              console.error('Audio play failed:', error);
-              // If autoplay is blocked, we can't do much about it
-              // The user needs to interact with the page first
-            });
-        }
+        audio.volume = 0.5;
+        await audio.play();
       } catch (error) {
         console.error("Failed to play notification sound", error);
       }
     }
   };
 
+  const showNativeNotification = async (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
+    if (Capacitor.isNativePlatform() && state.notificationsEnabled) {
+      try {
+        await LocalNotifications.schedule({
+          notifications: [
+            {
+              title: notification.title,
+              body: notification.description || '',
+              id: Date.now(),
+              schedule: { at: new Date(Date.now() + 100) },
+              sound: 'alert.mp3',
+              attachments: [],
+              actionTypeId: '',
+              extra: null
+            }
+          ]
+        });
+      } catch (error) {
+        console.error("Error scheduling native notification", error);
+      }
+    }
+  };
+
   const showBrowserNotification = (notification: Notification) => {
-    if (state.browserNotifications && 'Notification' in window && Notification.permission === 'granted') {
+    if (state.browserNotifications && 'Notification' in window && Notification.permission === 'granted' && !Capacitor.isNativePlatform()) {
       const browserNotification = new Notification(notification.title, {
         body: notification.description,
         icon: '/favicon.ico',
@@ -248,8 +280,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
     }
 
-    // Play sound and show browser notification
-    playNotificationSound();
+    // Play sound (web only, native handled by LocalNotifications)
+    if (!Capacitor.isNativePlatform()) {
+      playNotificationSound();
+    }
+
+    // Show Native Notification (Android/iOS)
+    showNativeNotification(notification);
 
     // Add the notification to the new notification object for browser notification
     const newNotification: Notification = {
@@ -282,6 +319,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   };
 
   const requestPermission = async (): Promise<boolean> => {
+    if (Capacitor.isNativePlatform()) {
+      const result = await LocalNotifications.requestPermissions();
+      return result.display === 'granted';
+    }
+
     if (!('Notification' in window)) {
       return false;
     }
