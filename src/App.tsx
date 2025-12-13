@@ -27,6 +27,8 @@ import { Documents } from "./pages/Documents";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AnimatePresence } from "framer-motion";
 import { useLocation } from "react-router-dom";
@@ -64,6 +66,8 @@ const App = () => {
             <GoogleDriveProvider>
               <Routes>
                 <Route path="/login" element={<Login onLogin={handleLogin} />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
 
                 {/* Protected Admin Route */}
                 <Route

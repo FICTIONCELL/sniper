@@ -163,10 +163,37 @@ export const generatePVPDF = (data: PVData, language = 'fr'): jsPDF => {
   return doc;
 };
 
-export const downloadPVPDF = (data: PVData, language = 'fr') => {
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+
+export const downloadPVPDF = async (data: PVData, language = 'fr') => {
   const doc = generatePVPDF(data, language);
   const filename = `PV_${data.pvNumber}_${data.date.replace(/\//g, '-')}.pdf`;
-  doc.save(filename);
+
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const pdfBase64 = doc.output('datauristring').split(',')[1];
+
+      const result = await Filesystem.writeFile({
+        path: filename,
+        data: pdfBase64,
+        directory: Directory.Cache,
+      });
+
+      await Share.share({
+        title: filename,
+        text: `PV: ${filename}`,
+        url: result.uri,
+        dialogTitle: 'Télécharger / Partager le PV',
+      });
+    } catch (error) {
+      console.error('Error saving/sharing PDF on Android:', error);
+      throw error;
+    }
+  } else {
+    doc.save(filename);
+  }
 };
 
 export const printPVPDF = (data: PVData, language = 'fr') => {

@@ -6,6 +6,9 @@ import { Download, Printer, Copy, QrCode, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { downloadPVPDF, printPVPDF } from "@/utils/pdfGenerator";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 interface QRCodeData {
   pvNumber: string;
@@ -67,20 +70,52 @@ export const QRCodeGenerator = ({ data, size = 200, className = "", projectName,
     }
   };
 
-  const downloadQR = () => {
+  const downloadQR = async () => {
     if (!qrCodeUrl) return;
 
-    const link = document.createElement('a');
-    link.download = `QR_${data.pvNumber}_${data.date.replace(/\//g, '-')}.png`;
-    link.href = qrCodeUrl;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const filename = `QR_${data.pvNumber}_${data.date.replace(/\//g, '-')}.png`;
 
-    toast({
-      title: t('qrCodeDownloaded'),
-      description: t('qrCodeSaved'),
-    });
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const base64Data = qrCodeUrl.split(',')[1];
+        const result = await Filesystem.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: Directory.Cache,
+        });
+
+        await Share.share({
+          title: filename,
+          text: `QR Code: ${filename}`,
+          url: result.uri,
+          dialogTitle: 'Télécharger / Partager le QR Code',
+        });
+
+        toast({
+          title: t('qrCodeDownloaded'),
+          description: t('qrCodeSaved'),
+        });
+      } catch (error) {
+        console.error('Error saving/sharing QR on Android:', error);
+        toast({
+          title: t('error'),
+          description: t('downloadError'),
+          variant: "destructive",
+        });
+      }
+    } else {
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = qrCodeUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: t('qrCodeDownloaded'),
+        description: t('qrCodeSaved'),
+      });
+    }
   };
 
   const getCompanyLogo = () => {
