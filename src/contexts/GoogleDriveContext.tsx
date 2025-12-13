@@ -21,6 +21,7 @@ interface GoogleDriveContextType {
     lastSynced: Date | null;
     uploadDocument: (file: File | Blob, fileName: string, projectId: string) => Promise<void>;
     getDocuments: (projectId?: string) => Promise<any[]>;
+    uploadReservePhoto: (file: File | Blob, projectId: string, reserveId: string) => Promise<any>;
     accessToken: string | null;
 }
 
@@ -409,6 +410,46 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
     };
 
+    const uploadReservePhoto = async (file: File | Blob, projectId: string, reserveId: string) => {
+        if (!accessToken) return null;
+        setIsSyncing(true);
+        try {
+            // 1. Root folder "Sniper Documents"
+            const rootFolder = await googleDriveService.findOrCreateFolder(accessToken, "Sniper Documents");
+
+            // 2. Project folder
+            const projectFolder = await googleDriveService.findOrCreateFolder(accessToken, projectId, rootFolder.id);
+
+            // 3. Reserve folder
+            const reserveFolder = await googleDriveService.findOrCreateFolder(accessToken, reserveId, projectFolder.id);
+
+            // 4. Upload file
+            const fileName = `photo_${Date.now()}.jpg`;
+            const uploadedFile = await googleDriveService.uploadFile(accessToken, file, fileName, reserveFolder.id, JSON.stringify({ projectId, reserveId }));
+
+            toast({
+                title: "Photo sauvegardée",
+                description: "La photo a été synchronisée sur Google Drive.",
+            });
+
+            // Return the webViewLink or a structure that can be used
+            // Note: webViewLink might require auth to view depending on sharing settings.
+            // For the app, we might store the ID and fetch on demand, or use thumbnailLink.
+            return uploadedFile;
+
+        } catch (error) {
+            console.error("Photo upload error", error);
+            toast({
+                title: "Erreur d'upload",
+                description: "Impossible de sauvegarder la photo.",
+                variant: "destructive",
+            });
+            return null;
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     return (
         <GoogleDriveContext.Provider value={{
             isAuthenticated: !!accessToken,
@@ -423,7 +464,8 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
             pendingSync,
             lastSynced,
             uploadDocument,
-            getDocuments
+            getDocuments,
+            uploadReservePhoto
         }}>
             {children}
         </GoogleDriveContext.Provider>

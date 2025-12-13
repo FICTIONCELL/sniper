@@ -86,10 +86,16 @@ function generateLicenseKey() {
     return segments.join('-');
 }
 
+const bcrypt = require('bcryptjs');
+
+// Admin password hash (bcrypt hash of '127.0.0.1')
+const ADMIN_PASSWORD_HASH = '$2b$10$FO/GAF04g0XrZCPXwHvpcOgMpDiYvNIz8nyvpXgKxJwUhEhiMrBTC';
+
 // Admin auth middleware
 function adminAuth(req, res, next) {
     const password = req.headers['x-admin-password'];
-    if (password !== ADMIN_PASSWORD) {
+
+    if (!password || !bcrypt.compareSync(password, ADMIN_PASSWORD_HASH)) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     next();
@@ -115,6 +121,7 @@ app.post('/api/trial/check', (req, res) => {
         previousTrial: trial || null
     });
 });
+
 
 // Start a trial
 app.post('/api/trial/start', (req, res) => {

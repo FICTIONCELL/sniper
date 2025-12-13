@@ -120,12 +120,17 @@ export const googleDriveService = {
         }
     },
 
-    async findFolder(accessToken: string, folderName: string) {
+    async findFolder(accessToken: string, folderName: string, parentId?: string) {
         try {
+            let query = `mimeType = 'application/vnd.google-apps.folder' and name = '${folderName}' and trashed = false`;
+            if (parentId) {
+                query += ` and '${parentId}' in parents`;
+            }
+
             const response = await axios.get(DRIVE_API_URL, {
                 headers: { Authorization: `Bearer ${accessToken}` },
                 params: {
-                    q: `mimeType = 'application/vnd.google-apps.folder' and name = '${folderName}' and trashed = false`,
+                    q: query,
                     spaces: 'drive',
                 },
             });
@@ -136,12 +141,16 @@ export const googleDriveService = {
         }
     },
 
-    async createFolder(accessToken: string, folderName: string) {
+    async createFolder(accessToken: string, folderName: string, parentId?: string) {
         try {
-            const fileMetadata = {
+            const fileMetadata: any = {
                 name: folderName,
                 mimeType: 'application/vnd.google-apps.folder',
             };
+
+            if (parentId) {
+                fileMetadata.parents = [parentId];
+            }
 
             const response = await axios.post(DRIVE_API_URL, fileMetadata, {
                 headers: {
@@ -152,6 +161,17 @@ export const googleDriveService = {
             return response.data;
         } catch (error) {
             console.error('Error creating folder:', error);
+            throw error;
+        }
+    },
+
+    async findOrCreateFolder(accessToken: string, folderName: string, parentId?: string) {
+        try {
+            const folder = await this.findFolder(accessToken, folderName, parentId);
+            if (folder) return folder;
+            return await this.createFolder(accessToken, folderName, parentId);
+        } catch (error) {
+            console.error('Error finding or creating folder:', error);
             throw error;
         }
     },

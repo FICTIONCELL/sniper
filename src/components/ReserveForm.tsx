@@ -1,3 +1,4 @@
+
 import { useState, useRef, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { Reserve } from "@/types";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 interface ReserveFormProps {
-  onSubmit: (data: Omit<Reserve, 'id' | 'createdAt'>) => void;
+  onSubmit: (data: Omit<Reserve, 'id' | 'createdAt'>, files?: File[]) => void;
 }
 
 export function ReserveForm({ onSubmit }: ReserveFormProps) {
@@ -34,6 +35,7 @@ export function ReserveForm({ onSubmit }: ReserveFormProps) {
     status: 'ouverte' as Reserve['status'],
     priority: 'normal' as Reserve['priority']
   });
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,12 +43,14 @@ export function ReserveForm({ onSubmit }: ReserveFormProps) {
     const submitData = { ...formData };
     if (!submitData.blockId || submitData.blockId === 'none') delete (submitData as any).blockId;
     if (!submitData.apartmentId || submitData.apartmentId === 'none') delete (submitData as any).apartmentId;
-    onSubmit(submitData);
+    onSubmit(submitData, pendingFiles);
   };
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
+      setPendingFiles(prev => [...prev, ...files]);
+
       const readers = files.map(file => {
         const reader = new FileReader();
         return new Promise<string>((resolve) => {
@@ -73,6 +77,7 @@ export function ReserveForm({ onSubmit }: ReserveFormProps) {
 
   const removeImage = (index: number) => {
     setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const filteredBlocks = blocks.filter(b => b.projectId === formData.projectId);
@@ -203,7 +208,7 @@ export function ReserveForm({ onSubmit }: ReserveFormProps) {
         <div className="flex flex-wrap gap-2">
           {formData.images.map((image, index) => (
             <div key={index} className="relative">
-              <img src={image} alt={`Preview ${index}`} className="w-20 h-20 object-cover rounded border" />
+              <img src={image} alt={`Preview ${index} `} className="w-20 h-20 object-cover rounded border" />
               <Button
                 type="button"
                 variant="destructive"

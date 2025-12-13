@@ -1,5 +1,4 @@
 import { AppSidebar } from "@/components/AppSidebar";
-import { SearchBar } from "@/components/SearchBar";
 import { TopBar } from "@/components/TopBar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,11 +14,6 @@ export function Layout({ children }: LayoutProps) {
   const [isCompactMode, setIsCompactMode] = useLocalStorage("compactMode", false);
   const { t } = useTranslation();
 
-  const handleSearch = (query: string) => {
-    console.log("Search query:", query);
-    // Implement global search logic here
-  };
-
   return (
     <NotificationProvider>
       <SidebarProvider>
@@ -31,9 +25,6 @@ export function Layout({ children }: LayoutProps) {
               <div className="flex-1 flex items-center justify-between gap-2 overflow-hidden">
                 <div className="flex items-center gap-2 md:gap-4 flex-1 overflow-hidden">
                   <h1 className="text-lg font-semibold truncate hidden md:block">{t('appTitle')}</h1>
-                  <div className="flex-1 max-w-md">
-                    <SearchBar onSearch={handleSearch} />
-                  </div>
                 </div>
                 <TopBar
                   onCompactModeToggle={() => setIsCompactMode(!isCompactMode)}

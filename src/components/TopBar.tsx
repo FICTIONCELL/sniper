@@ -9,7 +9,8 @@ import {
   Cloud,
   CloudOff,
   Loader2,
-  Search
+  Search,
+  Type
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -26,6 +27,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -54,11 +61,16 @@ export const TopBar = ({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [textSize, setTextSize] = useState(100);
 
   useEffect(() => {
     const results = search(searchQuery);
     setSearchResults(results);
   }, [searchQuery]);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${textSize}%`;
+  }, [textSize]);
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
@@ -133,6 +145,34 @@ export const TopBar = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Text Size Control */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="sm" className="w-9 px-0">
+            <Type className="h-4 w-4" />
+            <span className="sr-only">Taille du texte</span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-64">
+          <div className="space-y-2">
+            <h4 className="font-medium leading-none">Taille du texte</h4>
+            <div className="flex items-center gap-4">
+              <span className="text-sm">A-</span>
+              <Slider
+                value={[textSize]}
+                min={80}
+                max={150}
+                step={5}
+                onValueChange={(value) => setTextSize(value[0])}
+                className="flex-1"
+              />
+              <span className="text-lg font-bold">A+</span>
+            </div>
+            <p className="text-xs text-muted-foreground text-center">{textSize}%</p>
+          </div>
+        </PopoverContent>
+      </Popover>
 
       {/* Cloud Sync Button */}
       <Tooltip>
