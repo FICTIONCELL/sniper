@@ -1,20 +1,20 @@
 {
     "project_info": {
-        "project_number": "574103669256",
+        "project_number": "884107338123",
         "project_id": "sniper-9e4d8",
         "storage_bucket": "sniper-9e4d8.firebasestorage.app"
     },
     "client": [
         {
             "client_info": {
-                "mobilesdk_app_id": "1:574103669256:android:041011ed30ec4f00eddfbd",
+                "mobilesdk_app_id": "1:884107338123:android:041011ed30ec4f00eddfbd",
                 "android_client_info": {
                     "package_name": "com.sniper.buildflow"
                 }
             },
             "oauth_client": [
                 {
-                    "client_id": "574103669256-2ttr5rardo4hb871r1bih8pufarleigo.apps.googleusercontent.com",
+                    "client_id": "884107338123-00mgjgsask7h7asis26gaq3oc3tvorgd.apps.googleusercontent.com",
                     "client_type": 3
                 }
             ],
@@ -27,7 +27,7 @@
                 "appinvite_service": {
                     "other_platform_oauth_client": [
                         {
-                            "client_id": "574103669256-2ttr5rardo4hb871r1bih8pufarleigo.apps.googleusercontent.com",
+                            "client_id": "884107338123-00mgjgsask7h7asis26gaq3oc3tvorgd.apps.googleusercontent.com",
                             "client_type": 3
                         }
                     ]

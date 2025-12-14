@@ -303,6 +303,7 @@ app.get('/api/user-profile/:email', async (req, res) => {
 
 // --- Admin Auth Middleware ---
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+console.log("Admin Password configured:", ADMIN_PASSWORD); // Temporary log for debugging
 
 const adminAuth = (req, res, next) => {
     const pwd = req.headers['x-admin-password'];
