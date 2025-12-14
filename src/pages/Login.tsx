@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { mongoDbService } from '@/services/mongoDbService';
+import { googleAuthService } from '@/services/googleAuthService';
 
 interface LoginProps {
     onLogin: (user: any) => void;
@@ -13,11 +14,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Initialize Google Auth
-        GoogleAuth.initialize({
-            clientId: '884107338123-00mgjgsask7h7asis26gaq3oc3tvorgd.apps.googleusercontent.com',
-            scopes: ['profile', 'email'],
-            grantOfflineAccess: true,
+        // Initialize Google Auth using centralized service
+        googleAuthService.initialize().catch(err => {
+            console.error('Failed to initialize Google Auth', err);
         });
     }, []);
 

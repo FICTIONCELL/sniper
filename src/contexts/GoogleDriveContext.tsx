@@ -7,6 +7,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { GOOGLE_CLIENT_ID } from '@/config';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
+import { googleAuthService } from '@/services/googleAuthService';
 
 interface GoogleDriveContextType {
     isAuthenticated: boolean;
@@ -39,13 +40,10 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const { t } = useTranslation();
 
     useEffect(() => {
-        if (!Capacitor.isNativePlatform()) {
-            GoogleAuth.initialize({
-                clientId: '884107338123-00mgjgsask7h7asis26gaq3oc3tvorgd.apps.googleusercontent.com',
-                scopes: ['profile', 'email', 'https://www.googleapis.com/auth/drive.file'],
-                grantOfflineAccess: true,
-            });
-        }
+        // Initialize Google Auth using centralized service (only once)
+        googleAuthService.initialize().catch(err => {
+            console.error('Failed to initialize Google Auth in GoogleDriveContext', err);
+        });
     }, []);
 
     const fetchUserInfo = async (token: string) => {
