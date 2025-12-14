@@ -40,7 +40,7 @@ public class MainActivity extends BridgeActivity {
 
             // Enable cache for better performance and offline support
             webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
-            webSettings.setAppCacheEnabled(true);
+           
         }
     }
 }

@@ -4,11 +4,11 @@ services:
     name: sniper-backend
     env: node
     rootDir: .
-    buildCommand: npm install && npm run build && cd sniperabonment && npm install
+    buildCommand: cd sniperabonment && npm install
     startCommand: node sniperabonment/server.js
     envVars:
       - key: MONGODB_URI
-        sync: false # User must provide this in Render Dashboard
+        value: mongodb+srv://fictionsell_db_user:MXeurJ6gtP2rT1t7@cluster0.2mpve81.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
       - key: JWT_SECRET
         generateValue: true
 
@@ -26,4 +26,4 @@ services:
           name: sniper-backend
           property: url
       - key: VITE_GOOGLE_CLIENT_ID
-        sync: false # User must provide this
+        value: 884107338123-00mgjgsask7h7asis26gaq3oc3tvorgd.apps.googleusercontent.com
