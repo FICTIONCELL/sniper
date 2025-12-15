@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sniper Build Flow</string>
+    <string name="title_activity_main">Sniper Build Flow</string>
+    <string name="package_name">com.sniper.buildflow</string>
+    <string name="custom_url_scheme">com.sniper.buildflow</string>
+    <string name="server_client_id">884107338123-00mgjgsask7h7asis26gaq3oc3tvorgd.apps.googleusercontent.com</string>
+</resources>

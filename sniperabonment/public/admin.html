@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sniper Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1f2937;
+            --sidebar-bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --border-color: #e5e7eb;
+            --primary-color: #3b82f6;
+            --primary-hover: #2563eb;
+            --danger-color: #ef4444;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.5);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #111827;
+            --text-color: #f9fafb;
+            --sidebar-bg: #1f2937;
+            --card-bg: #1f2937;
+            --border-color: #374151;
+            --primary-color: #60a5fa;
+            --primary-hover: #3b82f6;
+            --danger-color: #f87171;
+            --success-color: #34d399;
+            --warning-color: #fbbf24;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(31, 41, 55, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 40px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background-color: var(--primary-color);
+            color: white;
+            opacity: 1;
+        }
+
+        .theme-toggle {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        h1,
+        h2,
+        h3 {
+            margin: 0;
+        }
+
+        /* Cards */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button.danger {
+            background-color: var(--danger-color);
+        }
+
+        button.danger:hover {
+            background-color: #dc2626;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: rgba(0, 0, 0, 0.02);
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-trial {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+
+        .badge-paid {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .badge-revoked {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
+
+        .badge-none {
+            background: rgba(107, 114, 128, 0.1);
+            color: #9ca3af;
+        }
+
+        /* Result Box */
+        #licenseResult {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success-color);
+            border-radius: 8px;
+            color: var(--success-color);
+            display: none;
+            word-break: break-all;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Icons (Simple SVG) */
+        .icon {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="logo">
+            <svg class="icon" viewBox="0 0 24 24">
+                <path
+                    d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z" />
+            </svg>
+            SniperAdmin
+        </div>
+        <div class="nav-item active" onclick="showSection('dashboard')">
+            <svg class="icon" viewBox="0 0 24 24">
+                <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+            </svg>
+            Dashboard
+        </div>
+        <div class="nav-item" onclick="showSection('licenses')">
+            <svg class="icon" viewBox="0 0 24 24">
+                <path
+                    d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z" />
+            </svg>
+            Licenses
+        </div>
+        <div class="nav-item" onclick="showSection('users')">
+            <svg class="icon" viewBox="0 0 24 24">
+                <path
+                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+            Users
+        </div>
+
+        <div class="theme-toggle" onclick="toggleTheme()">
+            <span id="themeIcon">🌙</span>
+            <span id="themeText">Dark Mode</span>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h2 id="pageTitle">Dashboard</h2>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="loadUsers()">Refresh Data</button>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard-section">
+            <div class="grid">
+                <div class="card">
+                    <div class="stat-value" id="totalUsers">0</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                <div class="card">
+                    <div class="stat-value" id="activeTrials">0</div>
+                    <div class="stat-label">Active Trials</div>
+                </div>
+                <div class="card">
+                    <div class="stat-value" id="activeLicenses">0</div>
+                    <div class="stat-label">Active Licenses</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Licenses Section -->
+        <div id="licenses-section" style="display: none;">
+            <div class="card">
+                <h3>Generate New License</h3>
+                <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; margin-top: 20px;">
+                    <div class="form-group">
+                        <label>License Type</label>
+                        <select id="licType">
+                            <option value="custom">Custom Days</option>
+                            <option value="month">Monthly (30 days)</option>
+                            <option value="year">Yearly (365 days)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Duration (Days)</label>
+                        <input type="number" id="licDays" value="30">
+                    </div>
+                    <div class="form-group">
+                        <label>User Email (Optional)</label>
+                        <input type="email" id="licEmail" placeholder="user@example.com">
+                    </div>
+                </div>
+                <button onclick="generateLicense()" style="width: 100%;">Generate License Key</button>
+                <div id="licenseResult"></div>
+            </div>
+        </div>
+
+        <!-- Users Section -->
+        <div id="users-section" style="display: none;">
+            <div class="form-group">
+                <input type="text" id="searchInput" placeholder="Search by email or machine ID..."
+                    onkeyup="filterUsers()">
+            </div>
+            <div class="table-container">
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Machine ID</th>
+                            <th>License Type</th>
+                            <th>Expires</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api';
+        let allUsers = [];
+
+        // Theme Logic
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            document.getElementById('themeIcon').textContent = next === 'dark' ? '🌙' : '☀️';
+            document.getElementById('themeText').textContent = next === 'dark' ? 'Dark Mode' : 'Light Mode';
+        }
+
+        // Navigation Logic
+        function showSection(sectionId) {
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('licenses-section').style.display = 'none';
+            document.getElementById('users-section').style.display = 'none';
+
+            document.getElementById(`${sectionId}-section`).style.display = 'block';
+
+            const titles = {
+                'dashboard': 'Dashboard',
+                'licenses': 'License Management',
+                'users': 'User Management'
+            };
+            document.getElementById('pageTitle').textContent = titles[sectionId];
+
+            // Update active nav item
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        // Data Logic
+        async function loadUsers() {
+            try {
+                const res = await fetch(`${API_URL}/users`);
+                allUsers = await res.json();
+                renderUsers(allUsers);
+                updateStats(allUsers);
+            } catch (err) {
+                console.error('Error loading users:', err);
+            }
+        }
+
+        function renderUsers(users) {
+            const tbody = document.querySelector('#usersTable tbody');
+            tbody.innerHTML = '';
+
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No users found</td></tr>';
+                return;
+            }
+
+            users.forEach(user => {
+                const tr = document.createElement('tr');
+
+                let statusClass = 'badge-none';
+                if (user.licenseType === 'trial') statusClass = 'badge-trial';
+                else if (['month', 'year', 'custom', 'paid'].includes(user.licenseType)) statusClass = 'badge-paid';
+                else if (user.licenseType === 'revoked') statusClass = 'badge-revoked';
+
+                const expires = user.expires ? new Date(user.expires).toLocaleDateString() : '-';
+
+                tr.innerHTML = `
+                <td><strong>${user.email}</strong></td>
+                <td><small style="font-family:monospace;">${user.machineId}</small></td>
+                <td><span class="badge ${statusClass}">${user.licenseType.toUpperCase()}</span></td>
+                <td>${expires}</td>
+                <td>
+                    ${user.licenseType !== 'revoked' ?
+                        `<button class="danger" style="padding: 6px 12px; font-size: 12px;" onclick="revokeUser('${user.email}')">Revoke</button>` :
+                        '<span style="color:var(--danger-color); font-size:12px;">Revoked</span>'}
+                </td>
+            `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateStats(users) {
+            let trials = 0;
+            let paid = 0;
+
+            users.forEach(u => {
+                if (u.licenseType === 'trial') trials++;
+                if (['month', 'year', 'custom', 'paid'].includes(u.licenseType)) paid++;
+            });
+
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('activeTrials').textContent = trials;
+            document.getElementById('activeLicenses').textContent = paid;
+        }
+
+        function filterUsers() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allUsers.filter(u =>
+                u.email.toLowerCase().includes(term) ||
+                u.machineId.toLowerCase().includes(term)
+            );
+            renderUsers(filtered);
+        }
+
+        async function generateLicense() {
+            const type = document.getElementById('licType').value;
+            let days = parseInt(document.getElementById('licDays').value);
+            const email = document.getElementById('licEmail').value;
+
+            if (type === 'month') days = 30;
+            if (type === 'year') days = 365;
+
+            try {
+                const res = await fetch(`${API_URL}/generate-license`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, days, email })
+                });
+                const data = await res.json();
+
+                const resultDiv = document.getElementById('licenseResult');
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `
+                <div style="margin-bottom:5px; font-weight:bold;">License Generated Successfully!</div>
+                <div style="font-family:monospace; background:rgba(0,0,0,0.1); padding:10px; border-radius:4px; user-select:all;">${data.token}</div>
+                <div style="margin-top:5px; font-size:12px;">Copy this token and send it to the user.</div>
+            `;
+
+            } catch (err) {
+                alert('Error generating license');
+            }
+        }
+
+        async function revokeUser(email) {
+            if (!confirm(\`Are you sure you want to revoke access for \${email}?\`)) return;
+
+        try {
+            await fetch(`${ API_URL } / revoke`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            loadUsers();
+        } catch (err) {
+            alert('Error revoking user');
+        }
+    }
+
+    // Initial load
+    loadUsers();
+    </script>
+
+</body>
+
+</html>
