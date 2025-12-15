@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { mongoDbService } from '@/services/mongoDbService';
@@ -125,13 +125,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <div className="mt-8 text-center text-xs text-muted-foreground">
-                    <a href="/privacy-policy" className="hover:underline hover:text-primary transition-colors">
+                    <Link to="/privacy-policy" className="hover:underline hover:text-primary transition-colors">
                         Politique de Confidentialité
-                    </a>
+                    </Link>
                     <span className="mx-2">•</span>
-                    <a href="/terms-of-service" className="hover:underline hover:text-primary transition-colors">
+                    <Link to="/terms-of-service" className="hover:underline hover:text-primary transition-colors">
                         Conditions d'utilisation
-                    </a>
+                    </Link>
                 </div>
             </div>
         </div>
