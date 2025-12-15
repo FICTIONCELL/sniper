@@ -4,7 +4,7 @@ services:
     name: sniper-backend
     env: node
     rootDir: .
-    buildCommand: cd sniperabonment && npm install
+    buildCommand: npm install && npm run build && cd sniperabonment && npm install
     startCommand: node sniperabonment/server.js
     envVars:
       - key: MONGODB_URI
