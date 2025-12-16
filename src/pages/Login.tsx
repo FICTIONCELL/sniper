@@ -5,6 +5,9 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { mongoDbService } from '@/services/mongoDbService';
 import { googleAuthService } from '@/services/googleAuthService';
+import { useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 
 interface LoginProps {
     onLogin: (user: any) => void;
@@ -20,9 +23,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         });
     }, []);
 
-    const signIn = async () => {
+    const processLoginSuccess = async (user: any) => {
         try {
-            const user = await GoogleAuth.signIn();
             console.log("User:", user);
 
             // Send to SniperAbonnement API to register/update
@@ -86,9 +88,52 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             toast.success(`Welcome, ${user.givenName || user.name || 'User'}!`);
 
         } catch (error) {
-            console.error("Login Failed", error);
+            console.error("Login Processing Failed", error);
             const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
             toast.error(`Login Failed: ${errorMessage}`);
+        }
+    };
+
+    const loginToGoogleWeb = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                const userInfo = await axios.get(
+                    'https://www.googleapis.com/oauth2/v3/userinfo',
+                    { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
+                );
+
+                const user = {
+                    email: userInfo.data.email,
+                    givenName: userInfo.data.given_name,
+                    familyName: userInfo.data.family_name,
+                    name: userInfo.data.name,
+                    imageUrl: userInfo.data.picture,
+                    id: userInfo.data.sub,
+                    authentication: { accessToken: tokenResponse.access_token }
+                };
+
+                await processLoginSuccess(user);
+            } catch (error) {
+                console.error("Web Login Error", error);
+                toast.error("Web Login Failed");
+            }
+        },
+        onError: () => {
+            toast.error("Web Login Failed");
+        }
+    });
+
+    const signIn = async () => {
+        if (Capacitor.isNativePlatform()) {
+            try {
+                const user = await GoogleAuth.signIn();
+                await processLoginSuccess(user);
+            } catch (error) {
+                console.error("Native Login Failed", error);
+                toast.error("Login Failed");
+            }
+        } else {
+            loginToGoogleWeb();
         }
     };
 
