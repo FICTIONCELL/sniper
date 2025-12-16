@@ -3,73 +3,38 @@ import axios from 'axios';
 const DRIVE_API_URL = 'https://www.googleapis.com/drive/v3/files';
 const UPLOAD_API_URL = 'https://www.googleapis.com/upload/drive/v3/files';
 const DB_FILE_NAME = 'sniper_build_flow_db.json';
-const FOLDER_NAME = 'sniper_database';
 
 export const googleDriveService = {
-    async ensureFolder(accessToken: string) {
+    // Helper to find a file in appDataFolder by name
+    async findFileInAppData(accessToken: string, fileName: string) {
         try {
-            // Check if folder exists
             const response = await axios.get(DRIVE_API_URL, {
-                headers: { Authorization: `Bearer ${accessToken}` },
-                params: {
-                    q: `mimeType = 'application/vnd.google-apps.folder' and name = '${FOLDER_NAME}' and trashed = false`,
-                    spaces: 'drive',
-                },
-            });
-
-            if (response.data.files && response.data.files.length > 0) {
-                return response.data.files[0];
-            }
-
-            // Create folder if it doesn't exist
-            const fileMetadata = {
-                name: FOLDER_NAME,
-                mimeType: 'application/vnd.google-apps.folder',
-            };
-
-            const createResponse = await axios.post(DRIVE_API_URL, fileMetadata, {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
+                },
+                params: {
+                    q: `name = '${fileName}' and 'appDataFolder' in parents and trashed = false`,
+                    spaces: 'appDataFolder',
+                    fields: 'files(id, name, mimeType, createdTime, modifiedTime)',
                 },
             });
-            return createResponse.data;
+            return response.data.files[0]; // Returns undefined if not found
         } catch (error) {
-            console.error('Error ensuring folder exists:', error);
+            console.error(`Error finding file ${fileName} in AppData:`, error);
             throw error;
         }
     },
 
     async findFile(accessToken: string) {
-        try {
-            // First ensure folder exists
-            const folder = await this.ensureFolder(accessToken);
-
-            const response = await axios.get(DRIVE_API_URL, {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                },
-                params: {
-                    q: `name = '${DB_FILE_NAME}' and '${folder.id}' in parents and trashed = false`,
-                    spaces: 'drive',
-                },
-            });
-            return response.data.files[0]; // Returns undefined if not found
-        } catch (error) {
-            console.error('Error finding file in Drive:', error);
-            throw error;
-        }
+        return this.findFileInAppData(accessToken, DB_FILE_NAME);
     },
 
     async createFile(accessToken: string, data: any) {
         try {
-            // First ensure folder exists
-            const folder = await this.ensureFolder(accessToken);
-
             const fileMetadata = {
                 name: DB_FILE_NAME,
                 mimeType: 'application/json',
-                parents: [folder.id],
+                parents: ['appDataFolder'],
             };
 
             const formData = new FormData();
@@ -83,7 +48,7 @@ export const googleDriveService = {
             });
             return response.data;
         } catch (error) {
-            console.error('Error creating file in Drive:', error);
+            console.error('Error creating file in AppData:', error);
             throw error;
         }
     },
@@ -98,7 +63,7 @@ export const googleDriveService = {
             });
             return response.data;
         } catch (error) {
-            console.error('Error updating file in Drive:', error);
+            console.error('Error updating file in AppData:', error);
             throw error;
         }
     },
@@ -115,72 +80,17 @@ export const googleDriveService = {
             });
             return response.data;
         } catch (error) {
-            console.error('Error reading file from Drive:', error);
+            console.error('Error reading file from AppData:', error);
             throw error;
         }
     },
 
-    async findFolder(accessToken: string, folderName: string, parentId?: string) {
-        try {
-            let query = `mimeType = 'application/vnd.google-apps.folder' and name = '${folderName}' and trashed = false`;
-            if (parentId) {
-                query += ` and '${parentId}' in parents`;
-            }
-
-            const response = await axios.get(DRIVE_API_URL, {
-                headers: { Authorization: `Bearer ${accessToken}` },
-                params: {
-                    q: query,
-                    spaces: 'drive',
-                },
-            });
-            return response.data.files[0];
-        } catch (error) {
-            console.error('Error finding folder:', error);
-            throw error;
-        }
-    },
-
-    async createFolder(accessToken: string, folderName: string, parentId?: string) {
-        try {
-            const fileMetadata: any = {
-                name: folderName,
-                mimeType: 'application/vnd.google-apps.folder',
-            };
-
-            if (parentId) {
-                fileMetadata.parents = [parentId];
-            }
-
-            const response = await axios.post(DRIVE_API_URL, fileMetadata, {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-            return response.data;
-        } catch (error) {
-            console.error('Error creating folder:', error);
-            throw error;
-        }
-    },
-
-    async findOrCreateFolder(accessToken: string, folderName: string, parentId?: string) {
-        try {
-            const folder = await this.findFolder(accessToken, folderName, parentId);
-            if (folder) return folder;
-            return await this.createFolder(accessToken, folderName, parentId);
-        } catch (error) {
-            console.error('Error finding or creating folder:', error);
-            throw error;
-        }
-    },
-
-    async uploadFile(accessToken: string, file: File | Blob, fileName: string, folderId: string, description?: string) {
+    // Upload any file to AppData folder
+    async uploadFile(accessToken: string, file: File | Blob, fileName: string, description?: string) {
         try {
             const fileMetadata = {
                 name: fileName,
-                parents: [folderId],
+                parents: ['appDataFolder'],
                 description: description
             };
 
@@ -195,45 +105,34 @@ export const googleDriveService = {
             });
             return response.data;
         } catch (error) {
-            console.error('Error uploading file:', error);
+            console.error('Error uploading file to AppData:', error);
             throw error;
         }
     },
 
-    async listFiles(accessToken: string, folderId: string) {
+    // List all files in AppData folder
+    async listFiles(accessToken: string) {
         try {
             const response = await axios.get(DRIVE_API_URL, {
                 headers: { Authorization: `Bearer ${accessToken}` },
                 params: {
-                    q: `'${folderId}' in parents and trashed = false`,
+                    q: `'appDataFolder' in parents and trashed = false`,
+                    spaces: 'appDataFolder',
                     fields: 'files(id, name, mimeType, webViewLink, thumbnailLink, createdTime, description)',
                     orderBy: 'createdTime desc'
                 },
             });
             return response.data.files;
         } catch (error) {
-            console.error('Error listing files:', error);
+            console.error('Error listing files in AppData:', error);
             throw error;
         }
     },
 
     async saveUserProfile(accessToken: string, machineId: string, profileData: any) {
         try {
-            // Ensure folder exists
-            const folder = await this.ensureFolder(accessToken);
-
             const fileName = `${machineId}_abonment.json`;
-
-            // Check if file already exists
-            const existingFileResponse = await axios.get(DRIVE_API_URL, {
-                headers: { Authorization: `Bearer ${accessToken}` },
-                params: {
-                    q: `name = '${fileName}' and '${folder.id}' in parents and trashed = false`,
-                    spaces: 'drive',
-                },
-            });
-
-            const existingFile = existingFileResponse.data.files[0];
+            const existingFile = await this.findFileInAppData(accessToken, fileName);
 
             if (existingFile) {
                 // Update existing file
@@ -253,7 +152,7 @@ export const googleDriveService = {
                 const fileMetadata = {
                     name: fileName,
                     mimeType: 'application/json',
-                    parents: [folder.id],
+                    parents: ['appDataFolder'],
                 };
 
                 const formData = new FormData();
@@ -268,28 +167,16 @@ export const googleDriveService = {
                 return response.data;
             }
         } catch (error) {
-            console.error('Error saving user profile to Drive:', error);
+            console.error('Error saving user profile to AppData:', error);
             throw error;
         }
     },
 
     async loadUserProfile(accessToken: string, machineId: string) {
         try {
-            // Ensure folder exists
-            const folder = await this.ensureFolder(accessToken);
-
             const fileName = `${machineId}_abonment.json`;
+            const file = await this.findFileInAppData(accessToken, fileName);
 
-            // Find the file
-            const response = await axios.get(DRIVE_API_URL, {
-                headers: { Authorization: `Bearer ${accessToken}` },
-                params: {
-                    q: `name = '${fileName}' and '${folder.id}' in parents and trashed = false`,
-                    spaces: 'drive',
-                },
-            });
-
-            const file = response.data.files[0];
             if (!file) {
                 return null;
             }
@@ -302,7 +189,7 @@ export const googleDriveService = {
 
             return contentResponse.data;
         } catch (error) {
-            console.error('Error loading user profile from Drive:', error);
+            console.error('Error loading user profile from AppData:', error);
             return null;
         }
     },

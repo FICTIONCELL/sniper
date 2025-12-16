@@ -92,15 +92,29 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground">
-            <div className="p-8 border rounded-lg shadow-lg bg-card w-full max-w-md">
-                <h1 className="text-2xl font-bold mb-6 text-center">Sniper Build Flow</h1>
-                <p className="mb-6 text-center text-muted-foreground">Please sign in with Google to continue.</p>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
+            <div className="w-full max-w-2xl text-center mb-12">
+                <h1 className="text-4xl font-bold mb-4 text-primary">Sniper Build Flow</h1>
+                <h2 className="text-2xl font-semibold mb-6 text-muted-foreground">
+                    Project Management for Construction & Architecture
+                </h2>
+                <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
+                    Sniper Build Flow helps project managers, contractors, and architects track tasks, schedules, and resources with intuitive dashboards.
+                </p>
+            </div>
 
-                <div className="flex justify-center w-full">
+            <div className="p-8 border rounded-lg shadow-lg bg-card w-full max-w-md">
+                <div className="mb-6 text-center">
+                    <h3 className="text-xl font-semibold mb-2">Get Started</h3>
+                    <p className="text-sm text-muted-foreground">
+                        We use Google Sign-In to authenticate users securely. We request only basic account information (email, profile) to identify you and personalize your experience.
+                    </p>
+                </div>
+
+                <div className="flex justify-center w-full mb-6">
                     <Button
                         onClick={signIn}
-                        className="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100 border border-gray-300"
+                        className="w-full flex items-center justify-center gap-2 bg-white text-black hover:bg-gray-100 border border-gray-300 py-6 text-base"
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">
                             <path
@@ -124,14 +138,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     </Button>
                 </div>
 
-                <div className="mt-8 text-center text-xs text-muted-foreground">
-                    <Link to="/privacy-policy" className="hover:underline hover:text-primary transition-colors">
-                        Politique de Confidentialité
-                    </Link>
-                    <span className="mx-2">•</span>
-                    <Link to="/terms-of-service" className="hover:underline hover:text-primary transition-colors">
-                        Conditions d'utilisation
-                    </Link>
+                <div className="text-center text-xs text-muted-foreground border-t pt-4">
+                    <div className="flex justify-center space-x-4">
+                        <Link to="/privacy-policy" className="hover:underline hover:text-primary transition-colors">
+                            Privacy Policy
+                        </Link>
+                        <Link to="/terms-of-service" className="hover:underline hover:text-primary transition-colors">
+                            Terms of Service
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>

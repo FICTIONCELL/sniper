@@ -18,7 +18,7 @@ class GoogleAuthService {
             if (!Capacitor.isNativePlatform()) {
                 await GoogleAuth.initialize({
                     clientId: GOOGLE_CLIENT_ID,
-                    scopes: ['profile', 'email', 'https://www.googleapis.com/auth/drive.file'],
+                    scopes: ['profile', 'email', 'https://www.googleapis.com/auth/drive.appdata'],
                     grantOfflineAccess: true,
                 });
             }

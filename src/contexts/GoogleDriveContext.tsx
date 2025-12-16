@@ -366,19 +366,13 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (!accessToken) return;
         setIsSyncing(true);
         try {
-            // 1. Find or create "Sniper Documents" folder
-            let folder = await googleDriveService.findFolder(accessToken, "Sniper Documents");
-            if (!folder) {
-                folder = await googleDriveService.createFolder(accessToken, "Sniper Documents");
-            }
-
-            // 2. Upload file with metadata
-            const description = JSON.stringify({ projectId });
-            await googleDriveService.uploadFile(accessToken, file, fileName, folder.id, description);
+            // Upload file directly to AppData folder with metadata
+            const description = JSON.stringify({ projectId, type: 'document' });
+            await googleDriveService.uploadFile(accessToken, file, fileName, description);
 
             toast({
                 title: "Document uploadé",
-                description: "Le document a été sauvegardé sur Google Drive.",
+                description: "Le document a été sauvegardé sur Google Drive (AppData).",
             });
         } catch (error) {
             console.error("Upload error", error);
@@ -396,17 +390,15 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const getDocuments = async (projectId?: string) => {
         if (!accessToken) return [];
         try {
-            const folder = await googleDriveService.findFolder(accessToken, "Sniper Documents");
-            if (!folder) return [];
-
-            const files = await googleDriveService.listFiles(accessToken, folder.id);
+            // List all files in AppData folder
+            const files = await googleDriveService.listFiles(accessToken);
 
             // Filter by project if needed
             if (projectId) {
                 return files.filter((f: any) => {
                     try {
                         const meta = JSON.parse(f.description || "{}");
-                        return meta.projectId === projectId;
+                        return meta.projectId === projectId && meta.type === 'document';
                     } catch (e) {
                         return false;
                     }
@@ -424,22 +416,15 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (!accessToken) return null;
         setIsSyncing(true);
         try {
-            // 1. Root folder "Sniper Documents"
-            const rootFolder = await googleDriveService.findOrCreateFolder(accessToken, "Sniper Documents");
-
-            // 2. Project folder
-            const projectFolder = await googleDriveService.findOrCreateFolder(accessToken, projectId, rootFolder.id);
-
-            // 3. Reserve folder
-            const reserveFolder = await googleDriveService.findOrCreateFolder(accessToken, reserveId, projectFolder.id);
-
-            // 4. Upload file
+            // Upload file directly to AppData folder
             const fileName = `photo_${Date.now()}.jpg`;
-            const uploadedFile = await googleDriveService.uploadFile(accessToken, file, fileName, reserveFolder.id, JSON.stringify({ projectId, reserveId }));
+            const description = JSON.stringify({ projectId, reserveId, type: 'reserve_photo' });
+
+            const uploadedFile = await googleDriveService.uploadFile(accessToken, file, fileName, description);
 
             toast({
                 title: "Photo sauvegardée",
-                description: "La photo a été synchronisée sur Google Drive.",
+                description: "La photo a été synchronisée sur Google Drive (AppData).",
             });
 
             return uploadedFile;
