@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { GoogleOAuthProvider } from "@react-oauth/google";
+
 import { Layout } from "./components/Layout";
 import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -63,7 +63,7 @@ const App = () => {
   };
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
@@ -134,7 +134,7 @@ const App = () => {
           </ThemeProvider>
         </TooltipProvider>
       </QueryClientProvider>
-    </GoogleOAuthProvider>
+    </>
   );
 };
 

@@ -87,7 +87,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         } catch (error) {
             console.error("Login Failed", error);
-            toast.error("Login Failed");
+            const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+            toast.error(`Login Failed: ${errorMessage}`);
         }
     };
 
