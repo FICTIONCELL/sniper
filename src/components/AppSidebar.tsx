@@ -55,7 +55,7 @@ export function AppSidebar() {
   ];
 
   // Admin-only email
-  const isAdmin = true; // userEmail === 'fictionsell@gmail.com';
+  const isAdmin = userEmail === 'fictionsell@gmail.com';
 
   // Add Admin menu item if user is admin
   if (isAdmin) {

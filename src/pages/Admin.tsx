@@ -79,19 +79,27 @@ const Admin = () => {
         setLoginError(null);
         setIsLoading(true);
 
-        // Simple local bypass for testing
-        if (password === "admin") {
-            setAdminPassword(password);
-            setIsAuthenticated(true);
-            loadAllData(password);
-            toast({ title: "Connexion réussie (Mode Test)", description: "Bienvenue dans le panneau d'administration." });
-            setIsLoading(false);
-            return;
-        }
+        try {
+            // Verify password against server by trying to fetch stats
+            const response = await fetch(`${API_URL}/api/admin/stats`, {
+                headers: { "x-admin-password": password }
+            });
 
-        setLoginError("Mot de passe incorrect (Essai: 'admin')");
-        toast({ title: "Erreur", description: "Mot de passe incorrect.", variant: "destructive" });
-        setIsLoading(false);
+            if (response.ok) {
+                setAdminPassword(password);
+                setIsAuthenticated(true);
+                loadAllData(password);
+                toast({ title: "Connexion réussie", description: "Bienvenue dans le panneau d'administration." });
+            } else {
+                setLoginError("Mot de passe incorrect");
+                toast({ title: "Erreur", description: "Mot de passe incorrect.", variant: "destructive" });
+            }
+        } catch (error) {
+            setLoginError("Erreur de connexion au serveur");
+            toast({ title: "Erreur", description: "Impossible de vérifier le mot de passe.", variant: "destructive" });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const loadAllData = async (pwd: string) => {
@@ -282,7 +290,7 @@ const Admin = () => {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     onKeyPress={(e) => e.key === "Enter" && handleLogin()}
-                                    placeholder="Entrez le mot de passe..."
+                                    placeholder="Entrez le mot de passe (ex: 127.0.0.1)..."
                                 />
                                 <Button
                                     type="button"
