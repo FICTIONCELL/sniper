@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { googleLogout } from '@react-oauth/google'; // Keep for web logout if needed, or replace
+import { googleLogout, useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 import { googleDriveService } from '@/services/googleDriveService';
 import { autoLoadProfileOnLogin } from '@/services/profileAutoLoadService';
 import { useToast } from '@/hooks/use-toast';
@@ -286,10 +287,8 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
     };
 
-    const login = async () => {
+    const processLoginSuccess = async (user: any) => {
         try {
-            const user = await GoogleAuth.signIn();
-
             // Handle both web and native response structures
             const token = user.authentication.accessToken;
             const email = user.email;
@@ -305,12 +304,63 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
             checkForRemoteData(token);
         } catch (error) {
-            console.error("Google Sign-In Error:", error);
+            console.error("Login Processing Error:", error);
             toast({
                 title: t('error'),
-                description: "Impossible de se connecter à Google.",
+                description: "Erreur lors du traitement de la connexion.",
                 variant: "destructive",
             });
+        }
+    };
+
+    const loginToGoogleWeb = useGoogleLogin({
+        scope: 'https://www.googleapis.com/auth/drive.appdata',
+        onSuccess: async (tokenResponse) => {
+            try {
+                const userInfo = await axios.get(
+                    'https://www.googleapis.com/oauth2/v3/userinfo',
+                    { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
+                );
+
+                const user = {
+                    email: userInfo.data.email,
+                    authentication: { accessToken: tokenResponse.access_token }
+                };
+
+                await processLoginSuccess(user);
+            } catch (error) {
+                console.error("Web Login Error", error);
+                toast({
+                    title: t('error'),
+                    description: "Impossible de se connecter à Google (Web).",
+                    variant: "destructive",
+                });
+            }
+        },
+        onError: () => {
+            toast({
+                title: t('error'),
+                description: "Échec de la connexion Google (Web).",
+                variant: "destructive",
+            });
+        }
+    });
+
+    const login = async () => {
+        if (Capacitor.isNativePlatform()) {
+            try {
+                const user = await GoogleAuth.signIn();
+                await processLoginSuccess(user);
+            } catch (error) {
+                console.error("Native Google Sign-In Error:", error);
+                toast({
+                    title: t('error'),
+                    description: "Impossible de se connecter à Google (Natif).",
+                    variant: "destructive",
+                });
+            }
+        } else {
+            loginToGoogleWeb();
         }
     };
 
