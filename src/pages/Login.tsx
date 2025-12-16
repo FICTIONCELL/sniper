@@ -94,21 +94,26 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
             <div className="w-full max-w-2xl text-center mb-12">
-                <h1 className="text-4xl font-bold mb-4 text-primary">Sniper Build Flow</h1>
-                <h2 className="text-2xl font-semibold mb-6 text-muted-foreground">
-                    Project Management for Construction & Architecture
-                </h2>
-                <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
-                    Sniper Build Flow helps project managers, contractors, and architects track tasks, schedules, and resources with intuitive dashboards.
-                </p>
+                <section>
+                    <h1 className="text-4xl font-bold mb-4 text-primary">Sniper Build Flow</h1>
+                    <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
+                        Sniper Build Flow is a project management platform designed for construction
+                        and architectural teams. It helps professionals plan projects, track progress,
+                        manage tasks, and collaborate efficiently across web and mobile devices.
+                    </p>
+
+                    <h2 className="text-2xl font-semibold mb-6 text-muted-foreground">User Authentication</h2>
+                    <p className="text-sm text-muted-foreground mb-6">
+                        We use Google Sign-In to provide a secure and simple authentication experience.
+                        Sniper Build Flow only accesses your basic profile information (such as your
+                        email address) to identify your account and enable personalized access to the platform.
+                    </p>
+                </section>
             </div>
 
             <div className="p-8 border rounded-lg shadow-lg bg-card w-full max-w-md">
                 <div className="mb-6 text-center">
                     <h3 className="text-xl font-semibold mb-2">Get Started</h3>
-                    <p className="text-sm text-muted-foreground">
-                        We use Google Sign-In to authenticate users securely. We request only basic account information (email, profile) to identify you and personalize your experience.
-                    </p>
                 </div>
 
                 <div className="flex justify-center w-full mb-6">
