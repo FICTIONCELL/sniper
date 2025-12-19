@@ -31,11 +31,14 @@ app.use((req, res, next) => {
 
     res.setHeader(
         "Content-Security-Policy",
-        "default-src 'self'; " +
-        "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://sniper-rptn.onrender.com https://thesniper.onrender.com; " +
-        "frame-src https://accounts.google.com; " +
-        "img-src 'self' data: https://lh3.googleusercontent.com; " +
-        "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com"
+        [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.gstatic.com",
+            "frame-src https://accounts.google.com",
+            "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://sniper-rptn.onrender.com https://thesniper.onrender.com",
+            "img-src 'self' data: https://lh3.googleusercontent.com",
+            "style-src 'self' 'unsafe-inline'"
+        ].join("; ")
     );
     next();
 });
@@ -112,7 +115,7 @@ app.get('/api/user-profile/:email', async (req, res) => {
 });
 
 // --- Admin Auth Middleware ---
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '127.0.0.1';
 console.log("Admin Password configured:", ADMIN_PASSWORD); // Temporary log for debugging
 
 const adminAuth = (req, res, next) => {
