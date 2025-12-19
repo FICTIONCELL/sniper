@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Settings as SettingsIcon, Moon, Sun, Bell, BellOff, Globe, Download, Upload, Smartphone, Trash2, Cloud, Loader2, User, Building, Laptop, Monitor } from "lucide-react";
+import { Settings as SettingsIcon, Moon, Sun, Bell, BellOff, Globe, Download, Upload, Smartphone, Trash2, Cloud, Loader2, User, Building, Laptop, Monitor, Save, CheckCircle, XCircle, Clock, Key, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocalStorage, useProjects, useBlocks, useApartments, useCategories, useContractors, useReserves, useTasks, useReceptions } from "@/hooks/useLocalStorage";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -19,10 +19,11 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useNotification } from "@/contexts/NotificationContext";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Crown, Clock, Key, CheckCircle, XCircle, AlertTriangle, Save } from "lucide-react";
 import { googleDriveService } from "@/services/googleDriveService";
 import { mongoDbService, UserProfileData } from "@/services/mongoDbService";
 import { saveProfileByEmail } from '@/services/profileAutoLoadService';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { compressImage, compressBase64 } from "@/utils/imageCompression";
 
 interface SettingsData {
   notifications: boolean;
@@ -48,7 +49,7 @@ const Settings = () => {
     compactMode: false
   });
 
-  const [userProfile, setUserProfile] = useLocalStorage<UserProfile>('user_profile', {
+  const [userProfile, setUserProfile] = useLocalStorage<UserProfile>('sniper_user_profile', {
     name: '',
     email: '',
     phone: '',
@@ -124,6 +125,13 @@ const Settings = () => {
       description: t('dataErasedDesc'),
     });
   };
+
+  // Enforce logged-in email for trial
+  useEffect(() => {
+    if (isAuthenticated && userEmail) {
+      setTrialEmail(userEmail);
+    }
+  }, [isAuthenticated, userEmail]);
 
   useEffect(() => {
     // Apply RTL for Arabic
@@ -271,19 +279,31 @@ const Settings = () => {
     });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'companyLogo') => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'companyLogo') => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUserProfile(prev => ({ ...prev, [field]: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Compress image: max width 500px for avatar, 800px for logo, 70% quality
+        const maxWidth = field === 'avatar' ? 500 : 800;
+        const compressedImage = await compressImage(file, maxWidth, 0.7);
+        setUserProfile(prev => ({ ...prev, [field]: compressedImage }));
+        toast({
+          title: t('imageUploaded'),
+          description: t('imageUploadedDesc'),
+        });
+      } catch (error) {
+        console.error("Image compression error:", error);
+        toast({
+          title: t('error'),
+          description: "Failed to process image.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
   const getDeviceIcon = (type: string) => {
-    const lowerType = type.toLowerCase();
+    const lowerType = (type || '').toLowerCase();
     if (lowerType.includes('mobile') || lowerType.includes('android') || lowerType.includes('iphone')) {
       return <Smartphone className="h-5 w-5" />;
     }
@@ -496,14 +516,23 @@ const Settings = () => {
                     <p className="text-sm text-muted-foreground">
                       {isAuthenticated ? t('connected') : t('disconnected')}
                     </p>
-                    {lastSynced && (
-                      <p className="text-xs text-muted-foreground">
-                        {t('lastSynced')}: {lastSynced.toLocaleString()}
-                      </p>
+
+                    {isAuthenticated && user && (
+                      <div className="flex items-center gap-3 mt-2 p-2 bg-muted/50 rounded-lg">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={user.picture} alt={user.name} />
+                          <AvatarFallback>{user.name ? user.name.charAt(0).toUpperCase() : <User className="h-4 w-4" />}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-sm font-medium">{user.name}</p>
+                          <p className="text-xs text-muted-foreground">{user.email}</p>
+                        </div>
+                      </div>
                     )}
-                    {userEmail && (
-                      <p className="text-xs text-muted-foreground font-medium">
-                        {userEmail}
+
+                    {lastSynced && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {t('lastSynced')}: {lastSynced.toLocaleString()}
                       </p>
                     )}
                     {pendingSync && (
@@ -512,14 +541,14 @@ const Settings = () => {
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-col sm:flex-row">
                     {isAuthenticated ? (
                       <>
-                        <Button variant="outline" onClick={syncData} disabled={isSyncing}>
+                        <Button variant="outline" onClick={syncData} disabled={isSyncing} size="sm">
                           {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
                           {t('syncNow')}
                         </Button>
-                        <Button variant="destructive" onClick={logout}>
+                        <Button variant="destructive" onClick={logout} size="sm">
                           {t('disconnect')}
                         </Button>
                       </>
@@ -719,7 +748,17 @@ const Settings = () => {
                 <Label>{t('companyLogo')}</Label>
                 <div className="flex items-center gap-4">
                   {userProfile.companyLogo && (
-                    <img src={userProfile.companyLogo} alt="Company Logo" className="w-32 h-auto object-contain" />
+                    <div className="relative">
+                      <img src={userProfile.companyLogo} alt="Company Logo" className="w-32 h-auto object-contain border rounded-md p-1" />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full shadow-md"
+                        onClick={() => setUserProfile({ ...userProfile, companyLogo: '' })}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   )}
                   <Input
                     type="file"
@@ -744,156 +783,204 @@ const Settings = () => {
             </CardContent>
           </Card>
 
-{/* === ADD THIS CARD BEFORE </TabsContent> === */ }
-<Card>
-    <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-            <Cloud className="h-5 w-5" />
-            {t('saveProfile') || 'Sauvegarder le profil'}
-        </CardTitle>
-        <CardDescription>
-            {t('saveProfileDesc') || 'Sauvegardez votre profil et vos informations d\'abonnement sur Google Drive et dans la base de données.'}
-        </CardDescription>
-    </CardHeader>
-    <CardContent>
-        <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                <div className="space-y-1">
-                    <p className="text-sm font-medium">{t('profileBackup') || 'Sauvegarde de profil'}</p>
-                    <p className="text-xs text-muted-foreground">
-                        {t('profileBackupDesc') || 'Vos données seront sauvegardées dans le dossier sniper_database sur Google Drive'}
-                    </p>
-                </div>
-                <Button
-                    onClick={async () => {
-                        if (!isAuthenticated) {
-                            toast({
-                                title: "Connexion requise",
-                                description: "Veuillez vous connecter à Google Drive pour sauvegarder votre profil.",
-                                variant: "destructive"
-                            });
-                            return;
-                        }
-
-                        setIsSavingProfile(true);
-
-                        try {
-                            const userEmailForProfile = userProfile.email || userEmail || 'unknown';
-                        const machineId = currentDevice?.deviceId || localStorage.getItem('sniper_device_id') || 'unknown';
-
-                            const profileData: UserProfileData = {
-                                name: userProfile.name,
-                                email: userProfile.email,
-                                phone: userProfile.phone,
-                                avatar: userProfile.avatar,
-                                companyLogo: userProfile.companyLogo,
-                                showLogoInPV: userProfile.showLogoInPV,
-                                subscriptionStatus: subscription.status,
-                                subscriptionPlan: subscription.plan,
-                                subscriptionStartDate: subscription.startDate,
-                                subscriptionExpiryDate: subscription.endDate,
-                                machineId: machineId,
-                                lastUpdated: new Date().toISOString()
-                            };
-
-                            // Save to Google Drive
-                            if (accessToken && userEmailForProfile !== 'unknown') {
-                          await saveProfileByEmail(accessToken, userEmailForProfile, profileData);
-                        }
-
-                            // Save to Database
-                            const result = await mongoDbService.saveProfile(profileData);
-
-                            if (result.success) {
-                                toast({
-                                    title: "✅ Profil sauvegardé",
-                                    description: `Fichier: ${machineId}_abonment.json sauvegardé sur Google Drive et dans la base de données.`,
-                                });
-                            } else {
-                                throw new Error(result.message);
-                            }
-                        } catch (error: any) {
-                            console.error('Error saving profile:', error);
-                            toast({
-                                title: "❌ Erreur de sauvegarde",
-                                description: error.message || "Impossible de sauvegarder le profil.",
-                                variant: "destructive"
-                            });
-                        } finally {
-                            setIsSavingProfile(false);
-                        }
-                    }}
-                    disabled={isSavingProfile || !isAuthenticated}
-                    className="gap-2"
-                >
-                    {isSavingProfile ? (
-                        <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Sauvegarde...
-                        </>
-                    ) : (
-                        <>
-                            <Save className="h-4 w-4" />
-                            Sauvegarder
-                        </>
-                    )}
-                </Button>
-            </div>
-        </div>
-    </CardContent>
-</Card>
-        </TabsContent>
-
-        <TabsContent value="devices" className="space-y-4 mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Monitor className="h-5 w-5" />
-                {t('connectedDevices') || 'Appareils connectés'}
+                <Cloud className="h-5 w-5" />
+                {t('saveProfile') || 'Sauvegarder le profil'}
               </CardTitle>
               <CardDescription>
-                {t('connectedDevicesDesc') || 'Gérez les appareils connectés à votre compte.'}
+                {t('saveProfileDesc') || 'Sauvegardez votre profil et vos informations d\'abonnement sur Google Drive et dans la base de données.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">{t('profileBackup') || 'Sauvegarde de profil'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('profileBackupDesc') || 'Vos données seront sauvegardées dans le dossier sniper_database sur Google Drive'}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={async () => {
+                      if (!isAuthenticated) {
+                        toast({
+                          title: "Connexion requise",
+                          description: "Veuillez vous connecter à Google Drive pour sauvegarder votre profil.",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+
+                      setIsSavingProfile(true);
+
+                      try {
+                        const userEmailForProfile = userProfile.email || userEmail || 'unknown';
+                        const machineId = currentDevice?.deviceId || localStorage.getItem('sniper_device_id') || 'unknown';
+
+                        // Compress images before saving if they exist
+                        let compressedAvatar = userProfile.avatar;
+                        if (compressedAvatar && compressedAvatar.length > 100000) { // If > 100KB
+                          try {
+                            compressedAvatar = await compressBase64(compressedAvatar, 400, 0.6);
+                          } catch (e) {
+                            console.warn("Failed to compress avatar", e);
+                          }
+                        }
+
+                        let compressedLogo = userProfile.companyLogo;
+                        if (compressedLogo && compressedLogo.length > 100000) { // If > 100KB
+                          try {
+                            compressedLogo = await compressBase64(compressedLogo, 600, 0.6);
+                          } catch (e) {
+                            console.warn("Failed to compress logo", e);
+                          }
+                        }
+
+                        // 1. Prepare MongoDB Payload (Account/License Data ONLY)
+                        // STRICTLY limited to what the backend expects to avoid 500 errors
+                        const mongoPayload = {
+                          email: userEmailForProfile,
+                          subscriptionStatus: subscription.status || 'inactive',
+                          licenseKey: subscription.licenseKey || null,
+                          licenseEnd: subscription.endDate || null,
+                          // Additional helpful fields that are small
+                          licenseStart: subscription.startDate || null,
+                          daysLeft: daysRemaining,
+                          lastLogin: new Date().toISOString()
+                        };
+
+                        // 2. Prepare Google Drive Payload (Full Backup)
+                        const drivePayload: UserProfileData = {
+                          // Identity
+                          name: userProfile.name,
+                          email: userEmailForProfile,
+                          phone: userProfile.phone,
+                          avatar: compressedAvatar,
+                          companyLogo: compressedLogo,
+                          showLogoInPV: userProfile.showLogoInPV,
+
+                          // License Info (also helpful in Drive backup)
+                          subscriptionStatus: subscription.status,
+                          subscriptionPlan: subscription.plan,
+                          subscriptionStartDate: subscription.startDate,
+                          subscriptionExpiryDate: subscription.endDate,
+                          licenseKey: subscription.licenseKey,
+                          licenseStart: subscription.startDate,
+                          licenseEnd: subscription.endDate,
+                          daysLeft: daysRemaining,
+                          lastLogin: new Date().toISOString(),
+
+                          // Metadata
+                          machineId: machineId,
+                          lastUpdated: new Date().toISOString(),
+
+                          // Full Application Data
+                          projects,
+                          blocks,
+                          apartments,
+                          categories,
+                          contractors,
+                          reserves,
+                          tasks,
+                          receptions,
+                          settings,
+                          devices
+                        };
+
+                        // Update local state with compressed versions to avoid re-compressing
+                        if (compressedAvatar !== userProfile.avatar || compressedLogo !== userProfile.companyLogo) {
+                          setUserProfile(prev => ({
+                            ...prev,
+                            avatar: compressedAvatar,
+                            companyLogo: compressedLogo
+                          }));
+                        }
+
+                        // Save to Google Drive (Full Data)
+                        if (accessToken && userEmailForProfile !== 'unknown') {
+                          await saveProfileByEmail(accessToken, userEmailForProfile, drivePayload);
+                        }
+
+                        // Save to Database (License Data Only)
+                        // Cast to any because we are sending a subset that doesn't match the full UserProfileData interface
+                        const result = await mongoDbService.saveProfile(mongoPayload as any);
+
+                        if (result.success) {
+                          toast({
+                            title: "✅ Profil sauvegardé",
+                            description: `Fichier: ${machineId}_abonment.json sauvegardé sur Google Drive et dans la base de données.`,
+                          });
+                        } else {
+                          toast({
+                            title: "⚠️ Sauvegarde partielle",
+                            description: `Sauvegardé sur Drive mais erreur DB: ${result.message}`,
+                            variant: "destructive"
+                          });
+                        }
+
+                      } catch (error) {
+                        console.error("Error saving profile", error);
+                        toast({
+                          title: "❌ Erreur",
+                          description: "Impossible de sauvegarder le profil.",
+                          variant: "destructive"
+                        });
+                      } finally {
+                        setIsSavingProfile(false);
+                      }
+                    }}
+                    disabled={isSavingProfile}
+                  >
+                    {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    {t('save')}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="devices" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Laptop className="h-5 w-5" />
+                {t('connectedDevices') || 'Appareils connectés'}
+              </CardTitle>
+              <CardDescription>
+                {t('manageDevicesDesc') || 'Gérez les appareils connectés à votre compte.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
                 {devices.map((device) => (
-                  <div key={device.deviceId} className="flex items-start justify-between pb-4 border-b last:border-0 last:pb-0">
-                    <div className="flex gap-4">
-                      <div className="mt-1 p-2 bg-muted rounded-full">
-                        {getDeviceIcon(device.os || device.brand)}
+                  <div key={device.deviceId} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-muted rounded-full">
+                        {getDeviceIcon(device.os || 'unknown')}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium">
-                            {device.brand} {device.model}
-                          </h4>
-                          {device.isCurrent && (
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                          <p className="font-medium">{device.model || 'Unknown Device'}</p>
+                          {device.deviceId === currentDevice?.deviceId && (
+                            <Badge variant="secondary" className="text-xs">
                               {t('currentDevice') || 'Cet appareil'}
-                            </span>
+                            </Badge>
                           )}
                         </div>
-                        <div className="text-sm text-muted-foreground space-y-1 mt-1">
-                          <p className="flex items-center gap-1">
-                            <Globe className="h-3 w-3" /> {device.browser} {device.browserVersion} • {device.os} {device.osVersion}
-                          </p>
-                          <p className="text-xs">
-                            App v{device.appVersion} • {t('lastActive') || 'Dernière activité'}: {new Date(device.lastActive).toLocaleString()}
-                          </p>
-                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {t('lastActive')}: {new Date(device.lastActive).toLocaleString()}
+                        </p>
                       </div>
                     </div>
-                    {!device.isCurrent && (
+                    {device.deviceId !== currentDevice?.deviceId && (
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => {
-                          if (window.confirm(t('confirmRemoveDevice') || 'Voulez-vous vraiment supprimer cet appareil ?')) {
-                            removeDevice(device.deviceId);
-                          }
-                        }}
+                        onClick={() => removeDevice(device.deviceId)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -902,9 +989,9 @@ const Settings = () => {
                 ))}
 
                 {devices.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-center text-muted-foreground py-4">
                     {t('noDevicesFound') || 'Aucun appareil trouvé.'}
-                  </div>
+                  </p>
                 )}
               </div>
             </CardContent>
@@ -912,149 +999,121 @@ const Settings = () => {
         </TabsContent>
 
         <TabsContent value="subscription" className="space-y-6 mt-6">
-          {/* Subscription Status Card */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Crown className="h-5 w-5 text-yellow-500" />
                 {t('subscriptionStatus') || 'État de l\'abonnement'}
               </CardTitle>
-              <CardDescription>
-                {t('subscriptionDesc') || 'Gérez votre abonnement et consultez les détails.'}
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Status Badge */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {subscription.status === 'active' && (
-                    <Badge className="bg-green-500 hover:bg-green-600 text-white gap-1">
-                      <CheckCircle className="h-3 w-3" />
-                      {t('active') || 'Actif'}
-                    </Badge>
-                  )}
-                  {subscription.status === 'trial' && (
-                    <Badge className="bg-blue-500 hover:bg-blue-600 text-white gap-1">
-                      <Clock className="h-3 w-3" />
-                      {t('trial') || 'Essai Gratuit'}
-                    </Badge>
-                  )}
-                  {(subscription.status === 'expired' || subscription.status === 'inactive') && (
-                    <Badge variant="destructive" className="gap-1">
-                      <XCircle className="h-3 w-3" />
-                      {t('expired') || 'Expiré'}
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-sm font-medium">
-                  {daysRemaining} {t('daysRemaining') || 'jours restants'}
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{t('usage') || 'Utilisation'}</span>
-                  <span>{progressPercentage}%</span>
-                </div>
-                <Progress value={progressPercentage} className="h-2" />
-              </div>
-
-              {/* Plan Details */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
                 <div>
-                  <p className="text-sm text-muted-foreground">{t('plan') || 'Plan'}</p>
-                  <p className="font-medium capitalize">{subscription.plan}</p>
+                  <p className="font-medium text-lg capitalize">{subscription.plan === 'trial' ? (t('trialVersion') || 'Version d\'essai') : subscription.plan}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant={isActive ? "default" : "destructive"}>
+                      {isActive ? (t('active') || 'Actif') : (t('inactive') || 'Inactif')}
+                    </Badge>
+                    {isTrial && (
+                      <Badge variant="outline" className="border-yellow-500 text-yellow-600">
+                        {daysRemaining} {t('daysRemaining') || 'jours restants'}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{t('expiryDate') || 'Date d\'expiration'}</p>
-                  <p className="font-medium">{new Date(subscription.endDate).toLocaleDateString()}</p>
+                {isActive ? <CheckCircle className="h-8 w-8 text-green-500" /> : <XCircle className="h-8 w-8 text-red-500" />}
+              </div>
+
+              {isTrial && isActive && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>{t('trialProgress') || 'Progression de l\'essai'}</span>
+                    <span>{daysRemaining} / 14 {t('days') || 'jours'}</span>
+                  </div>
+                  <Progress value={progressPercentage} className="h-2" />
+                </div>
+              )}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <Building className="h-4 w-4" /> {t('projects') || 'Projets'}
+                  </h4>
+                  <p className="text-2xl font-bold">{projects.length} / {limits.maxProjects === Infinity ? '∞' : limits.maxProjects}</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <Cloud className="h-4 w-4" /> {t('storage') || 'Stockage'}
+                  </h4>
+                  <p className="text-2xl font-bold">Local + Drive</p>
                 </div>
               </div>
 
-              {/* Actions */}
-              <div className="pt-4 flex gap-3">
-                {!isActive && (
-                  <Button className="w-full" onClick={() => document.getElementById('activation-trigger')?.click()}>
-                    <Key className="mr-2 h-4 w-4" />
-                    {t('activateLicense') || 'Activer une licence'}
-                  </Button>
-                )}
-                {isActive && (
+              {!isActive && (
+                <div className="space-y-4 pt-4 border-t">
+                  <h3 className="font-medium">{t('activateSubscription') || 'Activer un abonnement'}</h3>
+
+                  {trialAvailable && (
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+                      <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">{t('startFreeTrial') || 'Commencer l\'essai gratuit'}</h4>
+                      <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">
+                        {t('trialDescription') || 'Profitez de toutes les fonctionnalités pendant 14 jours sans engagement.'}
+                      </p>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Email"
+                          value={trialEmail}
+                          onChange={(e) => setTrialEmail(e.target.value)}
+                          className="bg-white dark:bg-background"
+                          disabled={isAuthenticated && !!userEmail}
+                        />
+                        <Button onClick={() => startTrial(trialEmail)} disabled={isLoading || !trialEmail}>
+                          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('startTrial') || 'Commencer'}
+                        </Button>
+                      </div>
+                      {isAuthenticated && userEmail && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {t('trialEmailLinked') || 'L\'essai sera lié à votre compte Google connecté.'}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label>{t('licenseKey') || 'Clé de licence'}</Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Key className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="XXXX-XXXX-XXXX-XXXX"
+                          className="pl-9"
+                          value={licenseKey}
+                          onChange={(e) => setLicenseKey(e.target.value)}
+                        />
+                      </div>
+                      <Input
+                        placeholder="Email associé"
+                        className="w-1/3"
+                        value={activationEmail}
+                        onChange={(e) => setActivationEmail(e.target.value)}
+                      />
+                      <Button onClick={() => activateSubscription(licenseKey, activationEmail)} disabled={isLoading || !licenseKey || !activationEmail}>
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('activate') || 'Activer'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isActive && (
+                <div className="pt-4 border-t">
                   <Button variant="outline" className="w-full text-destructive hover:text-destructive" onClick={cancelSubscription}>
                     {t('cancelSubscription') || 'Annuler l\'abonnement'}
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
-
-          {/* Activation Dialog */}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button id="activation-trigger" className="hidden">Activate</button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('activateLicense') || 'Activer votre licence'}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t('enterLicenseKey') || 'Entrez votre clé de licence reçue par email.'}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label>{t('email')}</Label>
-                  <Input
-                    placeholder="email@example.com"
-                    value={activationEmail}
-                    onChange={(e) => setActivationEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('licenseKey') || 'Clé de licence'}</Label>
-                  <Input
-                    placeholder="XXXX-XXXX-XXXX-XXXX"
-                    value={licenseKey}
-                    onChange={(e) => setLicenseKey(e.target.value)}
-                  />
-                </div>
-              </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={() => activateSubscription(licenseKey, activationEmail)} disabled={isLoading}>
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('activate') || 'Activer'}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          {/* Trial Offer */}
-          {trialAvailable && !isActive && (
-            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                  <Clock className="h-5 w-5" />
-                  {t('startTrial') || 'Essai Gratuit 14 Jours'}
-                </CardTitle>
-                <CardDescription className="text-blue-600/80 dark:text-blue-400/80">
-                  {t('trialDesc') || 'Profitez de toutes les fonctionnalités Pro gratuitement pendant 14 jours.'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-4">
-                  <Input
-                    placeholder="Votre email"
-                    className="bg-white dark:bg-background"
-                    value={trialEmail}
-                    onChange={(e) => setTrialEmail(e.target.value)}
-                  />
-                  <Button onClick={() => startTrial(trialEmail)} disabled={isLoading}>
-                    {t('start') || 'Commencer'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
       </Tabs>
     </div>

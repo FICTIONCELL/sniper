@@ -339,10 +339,16 @@ app.post('/api/user-profile/save', async (req, res) => {
     }
 });
 
-app.get('/api/user-profile/:machineId', async (req, res) => {
-    const { machineId } = req.params;
+app.get('/api/user-profile/:identifier', async (req, res) => {
+    const { identifier } = req.params;
     try {
-        const profile = await UserProfile.findOne({ machine_id: machineId });
+        // Try to find by machine_id first, then by email
+        const profile = await UserProfile.findOne({
+            $or: [
+                { machine_id: identifier },
+                { email: identifier }
+            ]
+        });
         if (!profile) return res.status(404).json({ profile: null });
 
         const profileObj = profile.toObject();

@@ -36,7 +36,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             // Call API
             try {
-                await fetch('https://thesniper.onrender.com/api/register-machine', {
+                await fetch('https://sniper-rptn.onrender.com/api/register-machine', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

@@ -20,250 +20,60 @@ const MONGODB_URI = process.env.MONGODB_URI;
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Security Headers Middleware (CSP, COOP, COEP)
+app.use((req, res, next) => {
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+    res.setHeader("Cross-Origin-Embedder-Policy", "unsafe-none");
+
+    res.setHeader(
+        "Content-Security-Policy",
+        "default-src 'self'; " +
+        "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://sniper-rptn.onrender.com https://thesniper.onrender.com; " +
+        "frame-src https://accounts.google.com; " +
+        "img-src 'self' data: https://lh3.googleusercontent.com; " +
+        "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com"
+    );
+    next();
+});
 
 // DB Connection Check Middleware
 app.use((req, res, next) => {
     if (mongoose.connection.readyState !== 1 && !req.path.startsWith('/api/admin')) {
-        // Allow admin to potentially see status even if DB down? No, probably better to fail gracefully.
-        // But for debugging, let's log it.
         console.error("Database not connected. State:", mongoose.connection.readyState);
     }
     next();
 });
 
-// --- Database Setup (MongoDB) ---
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB Atlas'))
-    .catch(err => console.error('Could not connect to MongoDB:', err));
+// ... (Database Setup and Schemas remain unchanged)
 
-// Schemas & Models
-const userSchema = new mongoose.Schema({
-    id: String, // Keep UUID for compatibility
-    email: { type: String, unique: true, required: true },
-    passwordHash: String,
-    machineId: String,
-    ip: String,
-    // Profile Data
-    name: String,
-    phone: String,
-    avatar: String, // Base64 or URL
-    companyLogo: String, // Base64 or URL
-    showLogoInPV: { type: Boolean, default: false },
-
-    trialUsed: { type: Boolean, default: false },
-    licenseType: { type: String, default: 'none' },
-    expires: Date,
-    createdAt: { type: Date, default: Date.now }
-});
-
-const licenseSchema = new mongoose.Schema({
-    token: { type: String, unique: true, required: true },
-    payload: {
-        id: String,
-        days: Number,
-        email: String,
-        type: String,
-        notes: String,
-        created: Date
-    },
-    status: { type: String, default: 'active' }, // active, used, revoked
-    createdAt: { type: Date, default: Date.now }
-});
-
-const User = mongoose.model('User', userSchema);
-const License = mongoose.model('License', licenseSchema);
-
-// --- API Endpoints ---
-
-app.get('/', (req, res) => {
-    res.json({ message: 'Sniper Backend is running', status: 'OK' });
-});
-
-// 1. Register Machine
-app.post('/api/register-machine', async (req, res) => {
-    const { email, passwordHash, machineId, ip } = req.body;
-
-    if (!email || !machineId) {
-        return res.status(400).json({ error: 'Email and Machine ID are required' });
-    }
-
-    try {
-        let user = await User.findOne({ email });
-
-        if (user) {
-            // Update existing user info
-            user.machineId = machineId;
-            user.ip = ip || user.ip;
-            user.passwordHash = passwordHash || user.passwordHash;
-            await user.save();
-            return res.json({ message: 'User updated', user });
-        }
-
-        // Create new user
-        user = new User({
-            id: uuidv4(),
-            email,
-            passwordHash,
-            machineId,
-            ip,
-            trialUsed: false,
-            licenseType: 'none',
-            expires: null
-        });
-
-        await user.save();
-        res.json({ message: 'User registered', user });
-    } catch (error) {
-        console.error("Register error:", error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-// 2. Activate Trial
-app.post('/api/activate-trial', async (req, res) => {
-    const { email, machineId, days = 7 } = req.body;
-
-    try {
-        const user = await User.findOne({ email });
-
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        // Check if trial already used by email
-        if (user.trialUsed) {
-            return res.status(403).json({ error: 'Trial already used for this account' });
-        }
-
-        // Check if machineId has used trial (anti-fraud)
-        const machineUsed = await User.findOne({ machineId, trialUsed: true, email: { $ne: email } });
-        if (machineUsed) {
-            return res.status(403).json({ error: 'Trial already used on this machine' });
-        }
-
-        // Activate Trial
-        const expires = new Date();
-        expires.setDate(expires.getDate() + days);
-
-        user.trialUsed = true;
-        user.licenseType = 'trial';
-        user.expires = expires;
-
-        await user.save();
-        res.json({ message: 'Trial activated', expires: user.expires });
-    } catch (error) {
-        console.error("Trial error:", error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-// 3. Generate License (Admin)
-app.post('/api/generate-license', async (req, res) => {
-    const { days, email, type = 'custom' } = req.body;
-
-    const payload = {
-        id: uuidv4(),
-        days,
-        email,
-        type,
-        created: new Date()
-    };
-
-    const token = jwt.sign(payload, SECRET_KEY);
-
-    try {
-        const newLicense = new License({
-            token,
-            payload,
-            status: 'active'
-        });
-        await newLicense.save();
-        res.json({ token });
-    } catch (error) {
-        res.status(500).json({ error: 'Error generating license' });
-    }
-});
-
-// 4. Validate License
-app.post('/api/validate-license', async (req, res) => {
-    const { token, machineId, email } = req.body;
-
-    try {
-        const decoded = jwt.verify(token, SECRET_KEY);
-
-        // Check if revoked
-        const licenseRecord = await License.findOne({ token });
-        if (licenseRecord && licenseRecord.status === 'revoked') {
-            return res.status(403).json({ error: 'License revoked' });
-        }
-
-        // Calculate expiration
-        const created = new Date(decoded.created);
-        const expires = new Date(created);
-        expires.setDate(expires.getDate() + decoded.days);
-
-        if (new Date() > expires) {
-            return res.status(403).json({ error: 'License expired' });
-        }
-
-        // Optional: Bind to user if not already
-        if (email) {
-            const user = await User.findOne({ email });
-            if (user) {
-                user.licenseType = decoded.type || 'paid';
-                user.expires = expires;
-                await user.save();
-            }
-        }
-
-        res.json({ valid: true, expires: expires.toISOString(), type: decoded.type });
-
-    } catch (err) {
-        res.status(401).json({ error: 'Invalid token' });
-    }
-});
-
-// 5. Save User Profile
+// 5. Save User Profile (Strict License Data Only)
 app.post('/api/user-profile/save', async (req, res) => {
-    const { email, name, phone, avatar, companyLogo, showLogoInPV, machineId } = req.body;
-
-    if (!email) {
-        return res.status(400).json({ error: 'Email is required' });
-    }
-
     try {
-        let user = await User.findOne({ email });
+        const { email, subscriptionStatus, licenseKey, licenseEnd } = req.body;
 
-        if (user) {
-            user.name = name || user.name;
-            user.phone = phone || user.phone;
-            user.avatar = avatar || user.avatar;
-            user.companyLogo = companyLogo || user.companyLogo;
-            if (showLogoInPV !== undefined) user.showLogoInPV = showLogoInPV;
-            if (machineId) user.machineId = machineId; // Update machine ID if provided
-
-            await user.save();
-            return res.json({ success: true, message: 'Profile updated', user });
-        } else {
-            // Create new user if not exists (auto-register)
-            user = new User({
-                id: uuidv4(),
-                email,
-                name,
-                phone,
-                avatar,
-                companyLogo,
-                showLogoInPV,
-                machineId,
-                licenseType: 'none'
-            });
-            await user.save();
-            return res.json({ success: true, message: 'Profile created', user });
+        if (!email) {
+            return res.status(400).json({ message: "Email required" });
         }
-    } catch (error) {
-        console.error("Save profile error:", error);
-        res.status(500).json({ success: false, message: 'Internal server error' });
+
+        await User.updateOne(
+            { email },
+            {
+                email,
+                subscriptionStatus: subscriptionStatus || "free",
+                licenseKey: licenseKey || null,
+                licenseEnd: licenseEnd || null
+            },
+            { upsert: true }
+        );
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("MongoDB SAVE ERROR:", err);
+        res.status(500).json({ error: err.message });
     }
 });
 

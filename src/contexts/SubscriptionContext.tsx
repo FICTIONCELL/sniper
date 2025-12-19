@@ -189,13 +189,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         try {
             // Register trial with server
-            const response = await fetch(`${API_URL}/api/activate-trial`, {
+            const response = await fetch(`${API_URL}/api/trial/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     machineId,
                     email,
-                    days: 7 // Default trial duration
+                    deviceName: currentDevice?.model || 'Unknown Device'
                 })
             });
 

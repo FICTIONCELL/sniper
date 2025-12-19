@@ -45,15 +45,12 @@ async function loadProfileByEmail(accessToken: string, userEmail: string): Promi
     try {
         const DRIVE_API_URL = 'https://www.googleapis.com/drive/v3/files';
 
-        // Ensure folder exists
-        const folder = await googleDriveService.ensureFolder(accessToken);
-
         // Sanitize email for filename
         const sanitizedEmail = userEmail.replace(/[^a-zA-Z0-9@._-]/g, '_');
         const fileName = `${sanitizedEmail}_profile.json`;
 
-        // Find the file
-        const response = await fetch(`${DRIVE_API_URL}?q=name='${fileName}' and '${folder.id}' in parents and trashed=false`, {
+        // Find the file in AppData folder
+        const response = await fetch(`${DRIVE_API_URL}?q=name='${fileName}' and 'appDataFolder' in parents and trashed=false&spaces=appDataFolder`, {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
 
@@ -88,15 +85,12 @@ export async function saveProfileByEmail(
     const UPLOAD_API_URL = 'https://www.googleapis.com/upload/drive/v3/files';
 
     try {
-        // Ensure folder exists
-        const folder = await googleDriveService.ensureFolder(accessToken);
-
         // Sanitize email for filename
         const sanitizedEmail = userEmail.replace(/[^a-zA-Z0-9@._-]/g, '_');
         const fileName = `${sanitizedEmail}_profile.json`;
 
-        // Check if file already exists
-        const response = await fetch(`${DRIVE_API_URL}?q=name='${fileName}' and '${folder.id}' in parents and trashed=false`, {
+        // Check if file already exists in AppData
+        const response = await fetch(`${DRIVE_API_URL}?q=name='${fileName}' and 'appDataFolder' in parents and trashed=false&spaces=appDataFolder`, {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
 
@@ -114,11 +108,11 @@ export async function saveProfileByEmail(
                 body: JSON.stringify(profileData)
             });
         } else {
-            // Create new file
+            // Create new file in AppData
             const fileMetadata = {
                 name: fileName,
                 mimeType: 'application/json',
-                parents: [folder.id],
+                parents: ['appDataFolder'],
             };
 
             const formData = new FormData();

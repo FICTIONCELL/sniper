@@ -17,9 +17,28 @@ export interface UserProfileData {
     subscriptionStartDate: string;
     subscriptionExpiryDate: string;
 
+    // New License Data (for MongoDB separation)
+    licenseKey?: string;
+    licenseStart?: string;
+    licenseEnd?: string;
+    daysLeft?: number;
+    lastLogin?: string;
+
     // Metadata
     machineId: string;
     lastUpdated: string;
+
+    // Full App Data (Optional - now primarily for Google Drive)
+    projects?: any[];
+    blocks?: any[];
+    apartments?: any[];
+    categories?: any[];
+    contractors?: any[];
+    reserves?: any[];
+    tasks?: any[];
+    receptions?: any[];
+    settings?: any;
+    devices?: any[];
 }
 
 export const mongoDbService = {

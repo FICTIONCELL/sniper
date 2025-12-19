@@ -193,4 +193,41 @@ export const googleDriveService = {
             return null;
         }
     },
+
+    async ensureFolder(accessToken: string) {
+        try {
+            const folderName = 'SniperData';
+
+            // Check if folder exists
+            const response = await axios.get(DRIVE_API_URL, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                params: {
+                    q: `name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+                    fields: 'files(id, name)',
+                },
+            });
+
+            if (response.data.files && response.data.files.length > 0) {
+                return response.data.files[0];
+            }
+
+            // Create folder if it doesn't exist
+            const fileMetadata = {
+                name: folderName,
+                mimeType: 'application/vnd.google-apps.folder',
+            };
+
+            const createResponse = await axios.post(DRIVE_API_URL, fileMetadata, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            return createResponse.data;
+        } catch (error) {
+            console.error('Error ensuring folder exists:', error);
+            throw error;
+        }
+    }
 };

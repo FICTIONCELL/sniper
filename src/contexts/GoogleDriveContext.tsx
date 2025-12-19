@@ -10,9 +10,18 @@ import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Capacitor } from '@capacitor/core';
 import { googleAuthService } from '@/services/googleAuthService';
 
+export interface GoogleUser {
+    email: string;
+    name: string;
+    picture: string;
+    given_name?: string;
+    family_name?: string;
+    id?: string;
+}
+
 interface GoogleDriveContextType {
     isAuthenticated: boolean;
-    user: any | null;
+    user: GoogleUser | null;
     userEmail: string | null;
     login: () => Promise<void>;
     logout: () => Promise<void>;
@@ -30,7 +39,7 @@ interface GoogleDriveContextType {
 const GoogleDriveContext = createContext<GoogleDriveContextType | undefined>(undefined);
 
 export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [user, setUser] = useState<any | null>(null);
+    const [user, setUser] = useState<GoogleUser | null>(null);
     const [userEmail, setUserEmail] = useState<string | null>(null);
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -55,6 +64,16 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
             const data = await response.json();
             if (data.email) {
                 setUserEmail(data.email);
+                const googleUser: GoogleUser = {
+                    email: data.email,
+                    name: data.name,
+                    picture: data.picture,
+                    given_name: data.given_name,
+                    family_name: data.family_name,
+                    id: data.sub
+                };
+                setUser(googleUser);
+                localStorage.setItem('sniper_user', JSON.stringify(googleUser));
             }
         } catch (error) {
             console.error("Failed to fetch user info", error);
@@ -70,9 +89,19 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (tempToken) {
             // Restore the session
             setAccessToken(tempToken);
-            setUser(true);
-            if (tempEmail) {
+
+            if (storedUser) {
+                try {
+                    const parsedUser = JSON.parse(storedUser);
+                    setUser(parsedUser);
+                    setUserEmail(parsedUser.email);
+                } catch (e) {
+                    console.error('Failed to parse stored user', e);
+                }
+            } else if (tempEmail) {
                 setUserEmail(tempEmail);
+                // Try to fetch user info if we have token but no stored user object
+                fetchUserInfo(tempToken);
             }
 
             // Clear the temporary storage
@@ -84,12 +113,17 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 description: "Vos données ont été chargées avec succès.",
             });
         } else if (storedUser) {
-            // Auto-load stored user (e.g. Guest)
+            // Auto-load stored user (e.g. Guest or persisted session)
             try {
                 const parsedUser = JSON.parse(storedUser);
                 setUser(parsedUser);
                 setUserEmail(parsedUser.email);
-                setAccessToken('guest-token-bypass'); // Fake token to ensure isAuthenticated is true
+                // We might not have a valid access token here if it expired, 
+                // but we keep the user info for display. 
+                // Ideally we should try to silently refresh token here if possible.
+                // For now, we don't set accessToken to avoid false positive "authenticated" state without valid token
+                // UNLESS we are in a "guest" mode or similar.
+                // setAccessToken('guest-token-bypass'); 
                 console.log('Restored user from localStorage:', parsedUser);
             } catch (e) {
                 console.error('Failed to parse stored user', e);
@@ -107,6 +141,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
         localStorage.removeItem('sniper_device_id');
+        localStorage.removeItem('sniper_user');
     };
 
     const getAllLocalStorageData = () => {
@@ -172,7 +207,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
     };
 
-    const loadDataWithToken = async (token: string) => {
+    const loadDataWithToken = async (token: string, skipRemoteUpdate = false) => {
         setIsSyncing(true);
         try {
             // Step 1: Find file
@@ -217,7 +252,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 }
             });
 
-            if (file) {
+            if (file && !skipRemoteUpdate) {
                 await googleDriveService.updateFile(token, file.id, mergedData);
             }
 
@@ -268,6 +303,41 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
     };
 
+    const checkRemoteChanges = async () => {
+        if (!accessToken || isSyncing) return;
+
+        try {
+            const file = await googleDriveService.findFile(accessToken);
+            if (file && file.modifiedTime) {
+                const remoteModified = new Date(file.modifiedTime);
+                // Add a small buffer (2s) to avoid race conditions
+                if (!lastSynced || remoteModified.getTime() > lastSynced.getTime() + 2000) {
+                    console.log('Remote changes detected. Syncing...', remoteModified, lastSynced);
+                    toast({
+                        title: "🔄 Mise à jour détectée",
+                        description: "Synchronisation des nouvelles données...",
+                        duration: 2000,
+                    });
+                    await loadDataWithToken(accessToken, true);
+                    setLastSynced(new Date()); // Update lastSynced to now after pulling
+                }
+            }
+        } catch (error) {
+            console.error("Error checking remote changes", error);
+        }
+    };
+
+    // Polling effect
+    useEffect(() => {
+        if (!accessToken) return;
+
+        const intervalId = setInterval(() => {
+            checkRemoteChanges();
+        }, 10000); // Check every 10 seconds
+
+        return () => clearInterval(intervalId);
+    }, [accessToken, lastSynced, isSyncing]);
+
     const checkForRemoteData = async (token: string) => {
         try {
             const file = await googleDriveService.findFile(token);
@@ -287,15 +357,27 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
     };
 
-    const processLoginSuccess = async (user: any) => {
+    const processLoginSuccess = async (userResponse: any) => {
         try {
             // Handle both web and native response structures
-            const token = user.authentication.accessToken;
-            const email = user.email;
+            const token = userResponse.authentication.accessToken;
+            const email = userResponse.email;
 
             setAccessToken(token);
-            setUser(true);
             setUserEmail(email);
+
+            // Construct GoogleUser object
+            const googleUser: GoogleUser = {
+                email: email,
+                name: userResponse.displayName || userResponse.name || email.split('@')[0],
+                picture: userResponse.imageUrl || userResponse.picture || '',
+                given_name: userResponse.givenName || userResponse.given_name,
+                family_name: userResponse.familyName || userResponse.family_name,
+                id: userResponse.id
+            };
+
+            setUser(googleUser);
+            localStorage.setItem('sniper_user', JSON.stringify(googleUser));
 
             toast({
                 title: t('connected'),
@@ -314,7 +396,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
 
     const loginToGoogleWeb = useGoogleLogin({
-        scope: 'https://www.googleapis.com/auth/drive.appdata',
+        scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file profile email',
         onSuccess: async (tokenResponse) => {
             try {
                 const userInfo = await axios.get(
@@ -322,12 +404,12 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                     { headers: { Authorization: `Bearer ${tokenResponse.access_token}` } }
                 );
 
-                const user = {
-                    email: userInfo.data.email,
+                const userResponse = {
+                    ...userInfo.data,
                     authentication: { accessToken: tokenResponse.access_token }
                 };
 
-                await processLoginSuccess(user);
+                await processLoginSuccess(userResponse);
             } catch (error) {
                 console.error("Web Login Error", error);
                 toast({
@@ -366,7 +448,12 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     const logout = async () => {
         try {
-            await GoogleAuth.signOut();
+            if (Capacitor.isNativePlatform()) {
+                await GoogleAuth.signOut();
+            } else {
+                googleLogout();
+            }
+
             setAccessToken(null);
             setUser(null);
             setUserEmail(null);
@@ -379,6 +466,12 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
             window.location.href = '/';
         } catch (error) {
             console.error("Logout Error:", error);
+            // Even if logout fails (e.g. network), clear local state
+            setAccessToken(null);
+            setUser(null);
+            setUserEmail(null);
+            clearLocalData();
+            window.location.href = '/';
         }
     };
 
