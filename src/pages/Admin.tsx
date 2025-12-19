@@ -12,8 +12,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, Eye, EyeOff, RefreshCw, Download, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Capacitor } from "@capacitor/core";
+import { useGoogleDrive } from "@/contexts/GoogleDriveContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://sniper-rptn.onrender.com";
+const ADMIN_EMAIL = "fictionsell@gmail.com";
+const ADMIN_PASSWORD = "127.0.0.1"; // Backend password for API calls
 
 interface License {
     id: string;
@@ -60,10 +63,8 @@ interface Stats {
 
 const Admin = () => {
     const { toast } = useToast();
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [password, setPassword] = useState("");
-    const [showPassword, setShowPassword] = useState(false);
-    const [adminPassword, setAdminPassword] = useState("");
+    const { userEmail, isAuthenticated, login } = useGoogleDrive();
+    const [isAuthorized, setIsAuthorized] = useState(false);
 
     const [licenses, setLicenses] = useState<License[]>([]);
     const [trials, setTrials] = useState<Trial[]>([]);
@@ -73,39 +74,21 @@ const Admin = () => {
     const [newLicensePlan, setNewLicensePlan] = useState<string>("yearly");
     const [newLicenseNotes, setNewLicenseNotes] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [loginError, setLoginError] = useState<string | null>(null);
 
-    const handleLogin = async () => {
-        setLoginError(null);
-        setIsLoading(true);
-
-        try {
-            // Verify password against server by trying to fetch stats
-            const response = await fetch(`${API_URL}/api/admin/stats`, {
-                headers: { "x-admin-password": password }
-            });
-
-            if (response.ok) {
-                setAdminPassword(password);
-                setIsAuthenticated(true);
-                loadAllData(password);
-                toast({ title: "Connexion réussie", description: "Bienvenue dans le panneau d'administration." });
-            } else {
-                setLoginError("Mot de passe incorrect");
-                toast({ title: "Erreur", description: "Mot de passe incorrect.", variant: "destructive" });
-            }
-        } catch (error) {
-            setLoginError("Erreur de connexion au serveur");
-            toast({ title: "Erreur", description: "Impossible de vérifier le mot de passe.", variant: "destructive" });
-        } finally {
-            setIsLoading(false);
+    // Check if user is authorized admin
+    useEffect(() => {
+        if (isAuthenticated && userEmail === ADMIN_EMAIL) {
+            setIsAuthorized(true);
+            loadAllData();
+        } else {
+            setIsAuthorized(false);
         }
-    };
+    }, [isAuthenticated, userEmail]);
 
-    const loadAllData = async (pwd: string) => {
+    const loadAllData = async () => {
         setIsLoading(true);
         try {
-            const headers = { "x-admin-password": pwd };
+            const headers = { "x-admin-password": ADMIN_PASSWORD };
 
             const [licensesRes, trialsRes, subsRes, statsRes] = await Promise.all([
                 fetch(`${API_URL}/api/admin/licenses`, { headers }),
@@ -130,7 +113,7 @@ const Admin = () => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-admin-password": adminPassword
+                    "x-admin-password": ADMIN_PASSWORD
                 },
                 body: JSON.stringify({ plan: newLicensePlan, notes: newLicenseNotes })
             });
@@ -142,7 +125,7 @@ const Admin = () => {
                     description: `Clé: ${data.license.key}`
                 });
                 setNewLicenseNotes("");
-                loadAllData(adminPassword);
+                loadAllData();
             } else {
                 toast({ title: "Erreur", description: "Impossible de générer la licence.", variant: "destructive" });
             }
@@ -155,12 +138,12 @@ const Admin = () => {
         try {
             const response = await fetch(`${API_URL}/api/admin/licenses/${id}/revoke`, {
                 method: "PUT",
-                headers: { "x-admin-password": adminPassword }
+                headers: { "x-admin-password": ADMIN_PASSWORD }
             });
 
             if (response.ok) {
                 toast({ title: "Licence révoquée" });
-                loadAllData(adminPassword);
+                loadAllData();
             }
         } catch (error) {
             toast({ title: "Erreur", variant: "destructive" });
@@ -171,12 +154,12 @@ const Admin = () => {
         try {
             const response = await fetch(`${API_URL}/api/admin/licenses/${id}`, {
                 method: "DELETE",
-                headers: { "x-admin-password": adminPassword }
+                headers: { "x-admin-password": ADMIN_PASSWORD }
             });
 
             if (response.ok) {
                 toast({ title: "Licence supprimée" });
-                loadAllData(adminPassword);
+                loadAllData();
             }
         } catch (error) {
             toast({ title: "Erreur", variant: "destructive" });
@@ -263,7 +246,7 @@ const Admin = () => {
         }
     };
 
-    if (!isAuthenticated) {
+    if (!isAuthorized) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4">
                 <Card className="w-full max-w-md">
@@ -272,40 +255,33 @@ const Admin = () => {
                             <Shield className="h-6 w-6 text-primary" />
                         </div>
                         <CardTitle>Administration</CardTitle>
-                        <CardDescription>Entrez le mot de passe administrateur</CardDescription>
+                        <CardDescription>Accès réservé à l'administrateur</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {loginError && (
+                        {!isAuthenticated ? (
+                            <>
+                                <Alert>
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertTitle>Connexion requise</AlertTitle>
+                                    <AlertDescription>
+                                        Veuillez vous connecter avec le compte administrateur (fictionsell@gmail.com)
+                                    </AlertDescription>
+                                </Alert>
+                                <Button className="w-full" onClick={login}>
+                                    Se connecter avec Google
+                                </Button>
+                            </>
+                        ) : (
                             <Alert variant="destructive">
                                 <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Erreur</AlertTitle>
-                                <AlertDescription>{loginError}</AlertDescription>
+                                <AlertTitle>Accès refusé</AlertTitle>
+                                <AlertDescription>
+                                    Vous n'êtes pas autorisé à accéder à cette page.
+                                    <br />
+                                    Compte actuel: {userEmail}
+                                </AlertDescription>
                             </Alert>
                         )}
-                        <div className="space-y-2">
-                            <Label>Mot de passe</Label>
-                            <div className="relative">
-                                <Input
-                                    type={showPassword ? "text" : "password"}
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    onKeyPress={(e) => e.key === "Enter" && handleLogin()}
-                                    placeholder="Entrez le mot de passe (ex: 127.0.0.1)..."
-                                />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="absolute right-0 top-0 h-full px-3"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                >
-                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                        </div>
-                        <Button className="w-full" onClick={handleLogin} disabled={isLoading}>
-                            {isLoading ? "Connexion..." : "Connexion"}
-                        </Button>
                     </CardContent>
                 </Card>
             </div>
@@ -320,7 +296,7 @@ const Admin = () => {
                     <p className="text-muted-foreground">Gérez les licences et abonnements</p>
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
-                    <Button variant="outline" onClick={() => loadAllData(adminPassword)} disabled={isLoading} className="flex-1 md:flex-none">
+                    <Button variant="outline" onClick={() => loadAllData()} disabled={isLoading} className="flex-1 md:flex-none">
                         <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                         Actualiser
                     </Button>
