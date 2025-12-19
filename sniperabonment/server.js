@@ -60,7 +60,45 @@ app.use((req, res, next) => {
     next();
 });
 
-// ... (Database Setup and Schemas remain unchanged)
+// MongoDB Connection
+mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    console.log('✅ MongoDB connected successfully');
+}).catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+});
+
+// MongoDB Schemas
+const userSchema = new mongoose.Schema({
+    email: { type: String, required: true, unique: true },
+    passwordHash: String,
+    machineId: String,
+    ip: String,
+    licenseType: { type: String, default: 'none' },
+    expires: Date,
+    trialUsed: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
+    name: String,
+    phone: String,
+    avatar: String,
+    companyLogo: String,
+    showLogoInPV: Boolean,
+    subscriptionStatus: String,
+    licenseKey: String,
+    licenseEnd: Date
+});
+
+const licenseSchema = new mongoose.Schema({
+    token: { type: String, required: true, unique: true },
+    payload: Object,
+    status: { type: String, default: 'active' },
+    createdAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model('User', userSchema);
+const License = mongoose.model('License', licenseSchema);
 
 // 5. Save User Profile (Strict License Data Only)
 app.post('/api/user-profile/save', async (req, res) => {
