@@ -179,8 +179,16 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     // Check if trial is available for this machine/email
     const checkTrialAvailability = async (email: string): Promise<TrialCheckResult> => {
-        // Server checks this during activation, so we assume true here or could add a specific endpoint later
-        return { canStartTrial: true };
+        try {
+            const response = await fetch(`${API_URL}/api/trial/check/${encodeURIComponent(email)}`);
+            if (response.ok) {
+                return await response.json();
+            }
+            return { canStartTrial: false };
+        } catch (error) {
+            console.error('Failed to check trial availability:', error);
+            return { canStartTrial: true }; // Fallback to true if server error
+        }
     };
 
     // Start trial with server registration

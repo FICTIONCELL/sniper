@@ -215,6 +215,149 @@ app.get('/api/user-profile/:email', async (req, res) => {
     }
 });
 
+// 7. Start Free Trial
+app.post('/api/trial/start', async (req, res) => {
+    try {
+        const { email, machineId, deviceName } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        // Check if user already used a trial
+        let user = await User.findOne({ email });
+        if (user && user.trialUsed) {
+            return res.status(400).json({
+                error: 'Trial already used for this email',
+                trialDate: user.trialDate
+            });
+        }
+
+        // Create a 30-day trial license
+        const duration = 30;
+        const startDate = new Date();
+        const endDate = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
+
+        const key = jwt.sign({
+            id: uuidv4(),
+            email,
+            type: 'trial',
+            created: startDate
+        }, SECRET_KEY);
+
+        const newLicense = new License({
+            key,
+            email,
+            type: 'trial',
+            status: 'active',
+            startDate,
+            endDate,
+            daysRemaining: duration,
+            notes: `Auto-generated trial for ${deviceName || 'unknown device'}`,
+            token: key, // for backward compatibility
+            payload: { email, type: 'trial', machineId }
+        });
+
+        await newLicense.save();
+
+        // Update user
+        await User.updateOne(
+            { email },
+            {
+                trialUsed: true,
+                trialDate: startDate,
+                currentLicense: key,
+                machineId: machineId || user?.machineId,
+                $push: { licenseHistory: key }
+            },
+            { upsert: true }
+        );
+
+        res.json({
+            success: true,
+            expires: endDate.toISOString(),
+            licenseKey: key
+        });
+    } catch (error) {
+        console.error('Start trial error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// 7.5 Check Trial Availability
+app.get('/api/trial/check/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+        const user = await User.findOne({ email });
+
+        if (user && user.trialUsed) {
+            return res.json({
+                canStartTrial: false,
+                previousTrial: {
+                    started_at: user.trialDate,
+                    expired_at: user.expires // Assuming expires was set during trial
+                }
+            });
+        }
+
+        res.json({ canStartTrial: true });
+    } catch (error) {
+        console.error('Check trial error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// 8. Validate License
+app.post('/api/validate-license', async (req, res) => {
+    try {
+        const { token, email, machineId } = req.body;
+
+        if (!token) {
+            return res.status(400).json({ error: 'License key (token) is required' });
+        }
+
+        // Find license by key or token
+        const license = await License.findOne({
+            $or: [{ key: token }, { token: token }]
+        });
+
+        if (!license) {
+            return res.status(404).json({ valid: false, error: 'License not found' });
+        }
+
+        // Check status
+        if (license.status !== 'active') {
+            return res.json({
+                valid: false,
+                status: license.status,
+                error: `License is ${license.status}`
+            });
+        }
+
+        // Check expiration
+        if (license.endDate && new Date() > new Date(license.endDate)) {
+            license.status = 'expired';
+            await license.save();
+            return res.json({ valid: false, status: 'expired', error: 'License has expired' });
+        }
+
+        // Optional: Verify email if provided
+        if (email && license.email && license.email.toLowerCase() !== email.toLowerCase()) {
+            return res.status(403).json({ valid: false, error: 'License email mismatch' });
+        }
+
+        res.json({
+            valid: true,
+            type: license.type,
+            expires: license.endDate ? license.endDate.toISOString() : null,
+            daysRemaining: license.daysRemaining
+        });
+    } catch (error) {
+        console.error('Validate license error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // --- Admin Auth Middleware ---
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '127.0.0.1';
 console.log("Admin Password configured:", ADMIN_PASSWORD); // Temporary log for debugging

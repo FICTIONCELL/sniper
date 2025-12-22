@@ -9,9 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, RefreshCw, Download, AlertCircle, Search, Play, Pause, CheckCircle, XCircle, Clock, TrendingUp, Calendar } from "lucide-react";
+import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, RefreshCw, Download, AlertCircle, Search, Play, Pause, CheckCircle, XCircle, Clock, TrendingUp, Calendar, PieChart as PieChartIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useGoogleDrive } from "@/contexts/GoogleDriveContext";
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
 const API_URL = import.meta.env.VITE_API_URL || "https://sniper-rptn.onrender.com";
 const ADMIN_EMAIL = "fictionsell@gmail.com";
@@ -397,35 +398,76 @@ const Admin = () => {
                                 </Card>
                             </div>
 
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>📈 Répartition par Type</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm">🔵 Trial (30j)</span>
-                                            <Badge>{stats.byType.trial}</Badge>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm">📅 Mensuel</span>
-                                            <Badge>{stats.byType.monthly}</Badge>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm">📆 6 Mois</span>
-                                            <Badge>{stats.byType.sixMonths}</Badge>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm">📊 Annuel</span>
-                                            <Badge>{stats.byType.yearly}</Badge>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm">👑 Lifetime</span>
-                                            <Badge>{stats.byType.lifetime}</Badge>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <PieChartIcon className="h-5 w-5" />
+                                            Répartition par Type
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="h-[300px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={[
+                                                        { name: 'Trial', value: stats.byType.trial },
+                                                        { name: 'Mensuel', value: stats.byType.monthly },
+                                                        { name: '6 Mois', value: stats.byType.sixMonths },
+                                                        { name: 'Annuel', value: stats.byType.yearly },
+                                                        { name: 'Lifetime', value: stats.byType.lifetime },
+                                                    ]}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={60}
+                                                    outerRadius={80}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                >
+                                                    <Cell fill="#3b82f6" />
+                                                    <Cell fill="#6366f1" />
+                                                    <Cell fill="#a855f7" />
+                                                    <Cell fill="#22c55e" />
+                                                    <Cell fill="#eab308" />
+                                                </Pie>
+                                                <Tooltip />
+                                                <Legend />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <BarChart3 className="h-5 w-5" />
+                                            Statut des Licences
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="h-[300px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart
+                                                data={[
+                                                    { name: 'Actives', value: stats.activeLicenses },
+                                                    { name: 'Suspendues', value: stats.suspendedLicenses },
+                                                    { name: 'Révoquées', value: stats.revokedLicenses },
+                                                    { name: 'Expirées', value: stats.expiredLicenses },
+                                                ]}
+                                            >
+                                                <XAxis dataKey="name" />
+                                                <YAxis />
+                                                <Tooltip />
+                                                <Bar dataKey="value">
+                                                    <Cell fill="#22c55e" />
+                                                    <Cell fill="#eab308" />
+                                                    <Cell fill="#ef4444" />
+                                                    <Cell fill="#6b7280" />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </>
                     )}
                 </TabsContent>
