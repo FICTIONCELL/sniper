@@ -416,7 +416,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '127.0.0.1';
 console.log("Admin Password configured:", ADMIN_PASSWORD); // Temporary log for debugging
 
 const adminAuth = (req, res, next) => {
-    const pwd = req.headers['x-admin-password'];
+    const pwd = req.headers['x-admin-password'] || req.query.password;
     if (pwd === ADMIN_PASSWORD) {
         if (mongoose.connection.readyState !== 1) {
             const state = mongoose.connection.readyState;

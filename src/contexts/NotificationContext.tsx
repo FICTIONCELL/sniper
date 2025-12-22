@@ -27,6 +27,8 @@ interface NotificationState {
   notificationsEnabled: boolean; // Master switch
   browserNotifications: boolean;
   autoDelete: boolean;
+  lastReminderCheck: Record<string, string>; // key: reminderType, value: ISO date
+  notifiedThresholds: Record<string, number[]>; // key: entityId, value: thresholds already notified
 }
 
 type NotificationAction =
@@ -36,7 +38,9 @@ type NotificationAction =
   | { type: 'DELETE_NOTIFICATION'; id: string }
   | { type: 'CLEAR_ALL' }
   | { type: 'UPDATE_SETTINGS'; settings: Partial<Pick<NotificationState, 'soundEnabled' | 'toastsEnabled' | 'notificationsEnabled' | 'browserNotifications' | 'autoDelete'>> }
-  | { type: 'LOAD_NOTIFICATIONS'; notifications: Notification[] };
+  | { type: 'LOAD_NOTIFICATIONS'; notifications: Notification[] }
+  | { type: 'UPDATE_REMINDER_CHECK'; reminderType: string; date: string }
+  | { type: 'MARK_THRESHOLD_NOTIFIED'; entityId: string; threshold: number };
 
 const initialState: NotificationState = {
   notifications: [],
@@ -46,6 +50,8 @@ const initialState: NotificationState = {
   notificationsEnabled: true,
   browserNotifications: false,
   autoDelete: true,
+  lastReminderCheck: {},
+  notifiedThresholds: {},
 };
 
 function notificationReducer(state: NotificationState, action: NotificationAction): NotificationState {
@@ -124,6 +130,27 @@ function notificationReducer(state: NotificationState, action: NotificationActio
       };
     }
 
+    case 'UPDATE_REMINDER_CHECK': {
+      return {
+        ...state,
+        lastReminderCheck: {
+          ...state.lastReminderCheck,
+          [action.reminderType]: action.date,
+        },
+      };
+    }
+
+    case 'MARK_THRESHOLD_NOTIFIED': {
+      const currentThresholds = state.notifiedThresholds[action.entityId] || [];
+      return {
+        ...state,
+        notifiedThresholds: {
+          ...state.notifiedThresholds,
+          [action.entityId]: [...currentThresholds, action.threshold],
+        },
+      };
+    }
+
     default:
       return state;
   }
@@ -138,6 +165,8 @@ interface NotificationContextType {
   clearAll: () => void;
   updateSettings: (settings: Partial<Pick<NotificationState, 'soundEnabled' | 'toastsEnabled' | 'notificationsEnabled' | 'browserNotifications' | 'autoDelete'>>) => void;
   requestPermission: () => Promise<boolean>;
+  updateReminderCheck: (reminderType: string, date: string) => void;
+  markThresholdNotified: (entityId: string, threshold: number) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -207,8 +236,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       notificationsEnabled: state.notificationsEnabled,
       browserNotifications: state.browserNotifications,
       autoDelete: state.autoDelete,
+      lastReminderCheck: state.lastReminderCheck,
+      notifiedThresholds: state.notifiedThresholds,
     }));
-  }, [state.soundEnabled, state.toastsEnabled, state.notificationsEnabled, state.browserNotifications, state.autoDelete]);
+  }, [state.soundEnabled, state.toastsEnabled, state.notificationsEnabled, state.browserNotifications, state.autoDelete, state.lastReminderCheck, state.notifiedThresholds]);
 
   const playNotificationSound = async () => {
     if (state.soundEnabled && state.notificationsEnabled) {
@@ -357,6 +388,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         clearAll,
         updateSettings,
         requestPermission,
+        updateReminderCheck: (reminderType, date) => dispatch({ type: 'UPDATE_REMINDER_CHECK', reminderType, date }),
+        markThresholdNotified: (entityId, threshold) => dispatch({ type: 'MARK_THRESHOLD_NOTIFIED', entityId, threshold }),
       }}
     >
       {children}
