@@ -16,6 +16,7 @@ export interface UserProfileData {
     subscriptionPlan: 'trial' | 'monthly' | 'yearly' | 'lifetime';
     subscriptionStartDate: string;
     subscriptionExpiryDate: string;
+    trialUsed?: boolean;
 
     // New License Data (for MongoDB separation)
     licenseKey?: string;

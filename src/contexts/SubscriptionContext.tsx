@@ -113,6 +113,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (remaining <= 0 && subscription.status !== 'expired') {
             setSubscription(prev => ({ ...prev, status: 'expired' }));
         }
+
+        // Sync trial availability
+        if (subscription.trialUsed) {
+            setTrialAvailable(false);
+        } else {
+            setTrialAvailable(true);
+        }
     }, [subscription]);
 
     // Validate active license with server on load and periodically

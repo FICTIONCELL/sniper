@@ -73,7 +73,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         plan: profile.subscriptionPlan || 'trial',
                         startDate: profile.subscriptionStartDate || '',
                         endDate: profile.subscriptionExpiryDate || '',
-                        trialUsed: false, // Will be updated if needed
+                        licenseKey: (profile as any).licenseKey || '',
+                        trialUsed: (profile as any).trialUsed || false,
                         email: profile.email
                     };
                     localStorage.setItem('sniper_subscription', JSON.stringify(subscriptionData));

@@ -216,11 +216,13 @@ app.get('/api/user-profile/:email', async (req, res) => {
             avatar: user.avatar || '',
             companyLogo: user.companyLogo || '',
             showLogoInPV: user.showLogoInPV || false,
-            subscriptionStatus: user.licenseType === 'none' ? 'inactive' : 'active', // Simplified logic
+            subscriptionStatus: user.licenseType === 'none' ? 'inactive' : 'active',
             subscriptionPlan: user.licenseType,
-            subscriptionStartDate: user.createdAt, // Approx
+            subscriptionStartDate: user.createdAt,
             subscriptionExpiryDate: user.expires,
             machineId: user.machineId,
+            licenseKey: user.currentLicense || user.licenseKey,
+            trialUsed: user.trialUsed || false,
             lastUpdated: new Date().toISOString()
         };
 
