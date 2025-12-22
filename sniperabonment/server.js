@@ -259,8 +259,10 @@ app.post('/api/trial/start', async (req, res) => {
             return res.status(400).json({ error: 'Email is required' });
         }
 
+        const normalizedEmail = email.toLowerCase();
+
         // Check if user already used a trial
-        let user = await User.findOne({ email });
+        let user = await User.findOne({ email: normalizedEmail });
         if (user && user.trialUsed) {
             return res.status(400).json({
                 error: 'Trial already used for this email',
@@ -275,14 +277,14 @@ app.post('/api/trial/start', async (req, res) => {
 
         const key = jwt.sign({
             id: uuidv4(),
-            email,
+            email: normalizedEmail,
             type: 'trial',
             created: startDate
         }, SECRET_KEY);
 
         const newLicense = new License({
             key,
-            email,
+            email: normalizedEmail,
             type: 'trial',
             status: 'active',
             startDate,
@@ -290,14 +292,14 @@ app.post('/api/trial/start', async (req, res) => {
             daysRemaining: duration,
             notes: `Auto-generated trial for ${deviceName || 'unknown device'}`,
             token: key, // for backward compatibility
-            payload: { email, type: 'trial', machineId }
+            payload: { email: normalizedEmail, type: 'trial', machineId }
         });
 
         await newLicense.save();
 
         // Update user
         await User.updateOne(
-            { email },
+            { email: normalizedEmail },
             {
                 trialUsed: true,
                 trialDate: startDate,
@@ -363,6 +365,8 @@ app.post('/api/validate-license', async (req, res) => {
             return res.status(400).json({ error: 'Email is required for validation' });
         }
 
+        const normalizedEmail = email.toLowerCase();
+
         // Find license by key or token
         const license = await License.findOne({
             $or: [{ key: token }, { token: token }]
@@ -373,7 +377,7 @@ app.post('/api/validate-license', async (req, res) => {
         }
 
         // STRICT EMAIL CHECK: License must belong to the provided email
-        if (license.email.toLowerCase() !== email.toLowerCase()) {
+        if (license.email.toLowerCase() !== normalizedEmail) {
             return res.status(403).json({
                 valid: false,
                 error: 'License email mismatch. This license belongs to another account.'
@@ -546,9 +550,11 @@ app.post('/api/admin/licenses', adminAuth, async (req, res) => {
             return res.status(400).json({ error: 'Email and type are required' });
         }
 
+        const normalizedEmail = email.toLowerCase();
+
         // Check if trial already used for this email
         if (type === 'trial') {
-            const user = await User.findOne({ email });
+            const user = await User.findOne({ email: normalizedEmail });
             if (user && user.trialUsed) {
                 return res.status(400).json({
                     error: 'Trial already used for this email',
@@ -565,7 +571,7 @@ app.post('/api/admin/licenses', adminAuth, async (req, res) => {
         // Generate unique key
         const key = jwt.sign({
             id: uuidv4(),
-            email,
+            email: normalizedEmail,
             type,
             created: startDate
         }, SECRET_KEY);
@@ -573,7 +579,7 @@ app.post('/api/admin/licenses', adminAuth, async (req, res) => {
         // Create license
         const newLicense = new License({
             key,
-            email,
+            email: normalizedEmail,
             type,
             status: 'active',
             startDate,
@@ -590,7 +596,7 @@ app.post('/api/admin/licenses', adminAuth, async (req, res) => {
         // Update user if trial
         if (type === 'trial') {
             await User.updateOne(
-                { email },
+                { email: normalizedEmail },
                 {
                     trialUsed: true,
                     trialDate: startDate,
