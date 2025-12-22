@@ -25,7 +25,10 @@ class GoogleAuthService {
             this.initialized = true;
             console.log('GoogleAuth initialized successfully');
         } catch (error) {
-            console.error('Failed to initialize GoogleAuth', error);
+            console.error('Failed to initialize GoogleAuth. Error details:', JSON.stringify(error, null, 2));
+            if (error instanceof Error) {
+                console.error('Error message:', error.message);
+            }
             // Don't throw, just log
         }
     }

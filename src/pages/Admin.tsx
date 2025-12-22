@@ -88,19 +88,29 @@ const Admin = () => {
                 fetch(`${API_URL}/api/admin/stats`, { headers })
             ]);
 
-            if (licensesRes.ok) {
-                const data = await licensesRes.json();
-                setLicenses(data);
+            if (!licensesRes.ok || !statsRes.ok) {
+                const errorData = !licensesRes.ok ? await licensesRes.json() : await statsRes.json();
+                toast({
+                    title: "Erreur Serveur",
+                    description: errorData.details || errorData.error || "Erreur de connexion à la base de données.",
+                    variant: "destructive"
+                });
+                setIsLoading(false);
+                return;
             }
-            if (statsRes.ok) {
-                const data = await statsRes.json();
-                setStats(data);
-            }
+
+            const [licensesData, statsData] = await Promise.all([
+                licensesRes.json(),
+                statsRes.json()
+            ]);
+
+            setLicenses(licensesData);
+            setStats(statsData);
         } catch (error) {
             console.error('Load data error:', error);
             toast({
                 title: "Erreur",
-                description: "Impossible de charger les données.",
+                description: "Impossible de contacter le serveur.",
                 variant: "destructive"
             });
         }
@@ -144,7 +154,7 @@ const Admin = () => {
             } else {
                 toast({
                     title: "Erreur",
-                    description: data.error || "Impossible de générer la licence.",
+                    description: data.details || data.error || "Impossible de générer la licence.",
                     variant: "destructive"
                 });
             }

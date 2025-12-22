@@ -43,8 +43,8 @@ app.use((req, res, next) => {
         [
             "default-src 'self'",
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.gstatic.com",
-            "frame-src https://accounts.google.com",
-            "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://sniper-rptn.onrender.com https://thesniper.onrender.com",
+            "frame-src 'self' https://accounts.google.com https://content.googleapis.com https://idp.google.com",
+            "connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://idp.google.com https://sniper-rptn.onrender.com https://thesniper.onrender.com",
             "img-src 'self' data: https://lh3.googleusercontent.com",
             "style-src 'self' 'unsafe-inline'"
         ].join("; ")
@@ -61,13 +61,18 @@ app.use((req, res, next) => {
 });
 
 // MongoDB Connection
+if (!MONGODB_URI) {
+    console.error('❌ CRITICAL: MONGODB_URI is not defined in environment variables!');
+}
+
 mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => {
     console.log('✅ MongoDB connected successfully');
 }).catch(err => {
-    console.error('❌ MongoDB connection error:', err);
+    console.error('❌ MongoDB connection error:', err.message);
+    console.error('Please check if your MONGODB_URI is correct and your IP is whitelisted in MongoDB Atlas.');
 });
 
 // MongoDB Schemas
@@ -366,13 +371,30 @@ const adminAuth = (req, res, next) => {
     const pwd = req.headers['x-admin-password'];
     if (pwd === ADMIN_PASSWORD) {
         if (mongoose.connection.readyState !== 1) {
-            return res.status(503).json({ error: 'Database not connected' });
+            const state = mongoose.connection.readyState;
+            const states = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+            return res.status(503).json({
+                error: 'Database not connected',
+                details: `Current state: ${states[state] || state}. Check MONGODB_URI and IP whitelist.`
+            });
         }
         next();
     } else {
         res.status(401).json({ error: 'Unauthorized' });
     }
 };
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    const state = mongoose.connection.readyState;
+    const states = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
+    res.json({
+        status: state === 1 ? 'ok' : 'error',
+        database: states[state] || state,
+        mongodb_uri_set: !!process.env.MONGODB_URI,
+        time: new Date().toISOString()
+    });
+});
 
 // --- Admin API Endpoints ---
 
