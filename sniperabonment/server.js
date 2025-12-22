@@ -146,12 +146,15 @@ licenseSchema.virtual('calculatedDaysRemaining').get(function () {
 });
 
 // Update daysRemaining before saving
-licenseSchema.pre('save', function () {
+licenseSchema.pre('save', function (next) {
     if (!this.startDate) {
         this.startDate = new Date();
     }
 
-    if (this.type !== 'lifetime') {
+    if (this.type === 'lifetime') {
+        this.daysRemaining = -1;
+        this.endDate = null;
+    } else {
         const durations = {
             trial: 30,
             monthly: 30,
@@ -160,11 +163,25 @@ licenseSchema.pre('save', function () {
         };
 
         const days = durations[this.type];
-        if (days) {
-            this.endDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+        if (days && !this.endDate) {
+            this.endDate = new Date(this.startDate.getTime() + days * 24 * 60 * 60 * 1000);
+        }
+
+        if (this.endDate) {
+            const now = new Date();
+            const end = new Date(this.endDate);
+            const diffTime = end - now;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            this.daysRemaining = diffDays > 0 ? diffDays : 0;
+
+            // Auto-expire if days remaining is 0
+            if (this.daysRemaining === 0 && this.status === 'active') {
+                this.status = 'expired';
+            }
         }
     }
     this.updatedAt = new Date();
+    next();
 });
 
 const User = mongoose.model('User', userSchema);

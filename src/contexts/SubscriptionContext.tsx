@@ -93,7 +93,19 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     // Calculate days remaining and progress
     useEffect(() => {
-        if (!subscription.endDate || subscription.status === 'inactive') {
+        if (subscription.status === 'inactive') {
+            setDaysRemaining(0);
+            setProgressPercentage(0);
+            return;
+        }
+
+        if (subscription.plan === 'lifetime') {
+            setDaysRemaining(-1); // -1 indicates unlimited/lifetime
+            setProgressPercentage(100);
+            return;
+        }
+
+        if (!subscription.endDate) {
             setDaysRemaining(0);
             setProgressPercentage(0);
             return;
@@ -101,7 +113,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
         const now = new Date();
         const endDate = new Date(subscription.endDate);
-        const startDate = new Date(subscription.startDate);
+        const startDate = new Date(subscription.startDate || subscription.activatedAt || now);
 
         const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
         const remaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -109,13 +121,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setDaysRemaining(Math.max(0, remaining));
         setProgressPercentage(totalDays > 0 ? Math.max(0, Math.min(100, (remaining / totalDays) * 100)) : 0);
 
-        // Auto-expire subscription
-        if (remaining <= 0 && subscription.status !== 'expired') {
+        // Auto-expire subscription (only if not lifetime)
+        if (remaining <= 0 && subscription.status !== 'expired' && (subscription.plan as string) !== 'lifetime') {
             setSubscription(prev => ({ ...prev, status: 'expired' }));
         }
 
         // Sync trial availability
-        if (subscription.trialUsed) {
+        if (subscription.trialUsed || subscription.plan === 'trial') {
             setTrialAvailable(false);
         } else {
             setTrialAvailable(true);

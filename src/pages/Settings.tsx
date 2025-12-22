@@ -839,13 +839,11 @@ const Settings = () => {
                         }
 
                         // 1. Prepare MongoDB Payload (Account/License Data ONLY)
-                        // STRICTLY limited to what the backend expects to avoid 500 errors
                         const mongoPayload = {
                           email: userEmailForProfile,
                           subscriptionStatus: subscription.status || 'inactive',
                           licenseKey: subscription.licenseKey || null,
                           licenseEnd: subscription.endDate || null,
-                          // Additional helpful fields that are small
                           licenseStart: subscription.startDate || null,
                           daysLeft: daysRemaining,
                           lastLogin: new Date().toISOString()
@@ -853,15 +851,12 @@ const Settings = () => {
 
                         // 2. Prepare Google Drive Payload (Full Backup)
                         const drivePayload: UserProfileData = {
-                          // Identity
                           name: userProfile.name,
                           email: userEmailForProfile,
                           phone: userProfile.phone,
                           avatar: compressedAvatar,
                           companyLogo: compressedLogo,
                           showLogoInPV: userProfile.showLogoInPV,
-
-                          // License Info (also helpful in Drive backup)
                           subscriptionStatus: subscription.status,
                           subscriptionPlan: subscription.plan,
                           subscriptionStartDate: subscription.startDate,
@@ -871,12 +866,8 @@ const Settings = () => {
                           licenseEnd: subscription.endDate,
                           daysLeft: daysRemaining,
                           lastLogin: new Date().toISOString(),
-
-                          // Metadata
                           machineId: machineId,
                           lastUpdated: new Date().toISOString(),
-
-                          // Full Application Data
                           projects,
                           blocks,
                           apartments,
@@ -889,7 +880,6 @@ const Settings = () => {
                           devices
                         };
 
-                        // Update local state with compressed versions to avoid re-compressing
                         if (compressedAvatar !== userProfile.avatar || compressedLogo !== userProfile.companyLogo) {
                           setUserProfile(prev => ({
                             ...prev,
@@ -898,13 +888,10 @@ const Settings = () => {
                           }));
                         }
 
-                        // Save to Google Drive (Full Data)
                         if (accessToken && userEmailForProfile !== 'unknown') {
                           await saveProfileByEmail(accessToken, userEmailForProfile, drivePayload);
                         }
 
-                        // Save to Database (License Data Only)
-                        // Cast to any because we are sending a subset that doesn't match the full UserProfileData interface
                         const result = await mongoDbService.saveProfile(mongoPayload as any);
 
                         if (result.success) {
@@ -1014,9 +1001,14 @@ const Settings = () => {
                     <Badge variant={isActive ? "default" : "destructive"}>
                       {isActive ? (t('active') || 'Actif') : (t('inactive') || 'Inactif')}
                     </Badge>
-                    {isTrial && (
+                    {isTrial && isActive && (
                       <Badge variant="outline" className="border-yellow-500 text-yellow-600">
                         {daysRemaining} {t('daysRemaining') || 'jours restants'}
+                      </Badge>
+                    )}
+                    {(subscription.plan as string) === 'lifetime' && isActive && (
+                      <Badge variant="outline" className="border-yellow-500 text-yellow-600">
+                        👑 {t('lifetimeAccess') || 'Accès à vie'}
                       </Badge>
                     )}
                   </div>
@@ -1028,7 +1020,7 @@ const Settings = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>{t('trialProgress') || 'Progression de l\'essai'}</span>
-                    <span>{daysRemaining} / 14 {t('days') || 'jours'}</span>
+                    <span>{daysRemaining} / 30 {t('days') || 'jours'}</span>
                   </div>
                   <Progress value={progressPercentage} className="h-2" />
                 </div>
@@ -1057,7 +1049,7 @@ const Settings = () => {
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
                       <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">{t('startFreeTrial') || 'Commencer l\'essai gratuit'}</h4>
                       <p className="text-sm text-blue-600 dark:text-blue-400 mb-4">
-                        {t('trialDescription') || 'Profitez de toutes les fonctionnalités pendant 14 jours sans engagement.'}
+                        {t('trialDescription') || 'Profitez de toutes les fonctionnalités pendant 30 jours sans engagement.'}
                       </p>
                       <div className="flex gap-2">
                         <Input
