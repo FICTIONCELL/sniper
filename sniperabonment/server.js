@@ -360,6 +360,7 @@ app.delete('/api/admin/licenses/:id', adminAuth, async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Error deleting' });
     }
+    up
 });
 
 app.get('/api/health', (req, res) => {
