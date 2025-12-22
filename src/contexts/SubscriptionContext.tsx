@@ -113,10 +113,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
     }, [subscription]);
 
-    // Validate active license with server on load
+    // Validate active license with server on load and periodically
     useEffect(() => {
         const validateCurrentLicense = async () => {
-            if (subscription.status === 'active' && subscription.licenseKey) {
+            if ((subscription.status === 'active' || subscription.status === 'trial') && subscription.licenseKey && subscription.email) {
                 try {
                     const response = await fetch(`${API_URL}/api/validate-license`, {
                         method: 'POST',
@@ -129,13 +129,26 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
                     });
 
                     if (!response.ok) {
-                        // Server returned error (e.g. 403 Revoked), deactivate locally
-                        console.warn("License validation failed (server rejected), deactivating.");
-                        setSubscription(prev => ({
-                            ...prev,
-                            status: 'inactive',
-                            licenseKey: undefined
-                        }));
+                        const errorData = await response.json();
+                        console.warn("License validation failed (server rejected):", errorData.error);
+
+                        // If revoked or suspended, deactivate locally immediately
+                        if (response.status === 403 || response.status === 401) {
+                            setSubscription(prev => ({
+                                ...prev,
+                                status: 'inactive',
+                                licenseKey: undefined
+                            }));
+                        }
+                    } else {
+                        const data = await response.json();
+                        if (!data.valid) {
+                            setSubscription(prev => ({
+                                ...prev,
+                                status: 'inactive',
+                                licenseKey: undefined
+                            }));
+                        }
                     }
                 } catch (error) {
                     console.error("License validation check failed (network error)", error);
@@ -144,7 +157,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         };
 
         validateCurrentLicense();
-    }, [subscription.status, subscription.licenseKey]);
+
+        // Live revocation check: validate every 5 minutes
+        const interval = setInterval(validateCurrentLicense, 5 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, [subscription.status, subscription.licenseKey, subscription.email]);
 
     const isActive = subscription.status === 'active' || (subscription.status === 'trial' && daysRemaining > 0);
     const isTrial = subscription.status === 'trial';
@@ -196,7 +213,26 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setIsLoading(true);
 
         try {
-            // Register trial with server
+            // First check if a trial already exists
+            const availability = await checkTrialAvailability(email);
+
+            if (availability.trialUsed && availability.licenseKey) {
+                // Resume existing trial
+                const result = await activateSubscription(availability.licenseKey, email);
+                setIsLoading(false);
+                if (result.success) {
+                    return { success: true, message: 'Votre essai gratuit a été repris.' };
+                } else {
+                    return { success: false, message: 'Votre essai gratuit a expiré ou a été révoqué.' };
+                }
+            }
+
+            if (!availability.canStartTrial) {
+                setIsLoading(false);
+                return { success: false, message: 'Essai déjà utilisé pour cet email.' };
+            }
+
+            // Register new trial with server
             const response = await fetch(`${API_URL}/api/trial/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -218,6 +254,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
                     activatedAt: new Date().toISOString(),
                     trialUsed: true,
                     email: email,
+                    licenseKey: data.licenseKey // Store the key for validation
                 });
 
                 setTrialAvailable(false);
@@ -230,25 +267,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
             }
         } catch (error) {
             console.error('Failed to start trial:', error);
-            // Fallback to local-only trial if server unavailable
-            const now = new Date();
-            const endDate = new Date();
-            endDate.setDate(endDate.getDate() + 30);
-
-            setSubscription({
-                status: 'trial',
-                plan: 'trial',
-                startDate: now.toISOString(),
-                endDate: endDate.toISOString(),
-                activatedAt: now.toISOString(),
-                trialUsed: true,
-                email: email,
-            });
-
             setIsLoading(false);
             return {
-                success: true,
-                message: 'Essai activé en mode hors ligne. La synchronisation sera effectuée ultérieurement.'
+                success: false,
+                message: 'Impossible de contacter le serveur de licences.'
             };
         }
     };

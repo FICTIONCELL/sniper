@@ -307,16 +307,24 @@ app.get('/api/trial/check/:email', async (req, res) => {
         const user = await User.findOne({ email });
 
         if (user && user.trialUsed) {
+            // Find the trial license key
+            const trialLicense = await License.findOne({
+                email: email,
+                type: 'trial'
+            }).sort({ createdAt: -1 });
+
             return res.json({
                 canStartTrial: false,
+                trialUsed: true,
+                licenseKey: trialLicense ? trialLicense.key : null,
                 previousTrial: {
                     started_at: user.trialDate,
-                    expired_at: user.expires // Assuming expires was set during trial
+                    expired_at: trialLicense ? trialLicense.endDate : user.expires
                 }
             });
         }
 
-        res.json({ canStartTrial: true });
+        res.json({ canStartTrial: true, trialUsed: false });
     } catch (error) {
         console.error('Check trial error:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -332,6 +340,10 @@ app.post('/api/validate-license', async (req, res) => {
             return res.status(400).json({ error: 'License key (token) is required' });
         }
 
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required for validation' });
+        }
+
         // Find license by key or token
         const license = await License.findOne({
             $or: [{ key: token }, { token: token }]
@@ -339,6 +351,14 @@ app.post('/api/validate-license', async (req, res) => {
 
         if (!license) {
             return res.status(404).json({ valid: false, error: 'License not found' });
+        }
+
+        // STRICT EMAIL CHECK: License must belong to the provided email
+        if (license.email.toLowerCase() !== email.toLowerCase()) {
+            return res.status(403).json({
+                valid: false,
+                error: 'License email mismatch. This license belongs to another account.'
+            });
         }
 
         // Check status
@@ -355,11 +375,6 @@ app.post('/api/validate-license', async (req, res) => {
             license.status = 'expired';
             await license.save();
             return res.json({ valid: false, status: 'expired', error: 'License has expired' });
-        }
-
-        // Optional: Verify email if provided
-        if (email && license.email && license.email.toLowerCase() !== email.toLowerCase()) {
-            return res.status(403).json({ valid: false, error: 'License email mismatch' });
         }
 
         res.json({
