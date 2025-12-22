@@ -79,6 +79,9 @@ const userSchema = new mongoose.Schema({
     licenseType: { type: String, default: 'none' },
     expires: Date,
     trialUsed: { type: Boolean, default: false },
+    trialDate: Date,
+    currentLicense: String, // Reference to active license key
+    licenseHistory: [String], // Array of all license keys used
     createdAt: { type: Date, default: Date.now },
     name: String,
     phone: String,
@@ -91,10 +94,61 @@ const userSchema = new mongoose.Schema({
 });
 
 const licenseSchema = new mongoose.Schema({
-    token: { type: String, required: true, unique: true },
-    payload: Object,
-    status: { type: String, default: 'active' },
-    createdAt: { type: Date, default: Date.now }
+    key: { type: String, required: true, unique: true },
+    email: { type: String, required: true, index: true },
+    type: {
+        type: String,
+        enum: ['trial', 'monthly', '6months', 'yearly', 'lifetime'],
+        required: true
+    },
+    status: {
+        type: String,
+        enum: ['active', 'suspended', 'revoked', 'expired'],
+        default: 'active',
+        index: true
+    },
+    startDate: { type: Date, default: Date.now },
+    endDate: Date,
+    daysRemaining: Number,
+    notes: String,
+    createdBy: { type: String, default: 'admin' },
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+    // Legacy fields for backward compatibility
+    token: String,
+    payload: Object
+});
+
+// Virtual field to calculate days remaining
+licenseSchema.virtual('calculatedDaysRemaining').get(function () {
+    if (this.type === 'lifetime') return -1; // -1 means unlimited
+    if (!this.endDate) return 0;
+    const now = new Date();
+    const end = new Date(this.endDate);
+    const diffTime = end - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+});
+
+// Update daysRemaining before saving
+licenseSchema.pre('save', function (next) {
+    if (this.type === 'lifetime') {
+        this.daysRemaining = -1;
+        this.endDate = null;
+    } else if (this.endDate) {
+        const now = new Date();
+        const end = new Date(this.endDate);
+        const diffTime = end - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        this.daysRemaining = diffDays > 0 ? diffDays : 0;
+
+        // Auto-expire if days remaining is 0
+        if (this.daysRemaining === 0 && this.status === 'active') {
+            this.status = 'expired';
+        }
+    }
+    this.updatedAt = new Date();
+    next();
 });
 
 const User = mongoose.model('User', userSchema);
@@ -179,81 +233,278 @@ const adminAuth = (req, res, next) => {
 
 // --- Admin API Endpoints ---
 
+// Helper function to calculate license duration in days
+const getLicenseDuration = (type) => {
+    switch (type) {
+        case 'trial': return 30;
+        case 'monthly': return 30;
+        case '6months': return 180;
+        case 'yearly': return 365;
+        case 'lifetime': return -1; // unlimited
+        default: return 30;
+    }
+};
+
+// GET /api/admin/stats - Detailed statistics
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
     try {
         const totalLicenses = await License.countDocuments();
         const activeLicenses = await License.countDocuments({ status: 'active' });
+        const suspendedLicenses = await License.countDocuments({ status: 'suspended' });
         const revokedLicenses = await License.countDocuments({ status: 'revoked' });
+        const expiredLicenses = await License.countDocuments({ status: 'expired' });
+
+        const trialLicenses = await License.countDocuments({ type: 'trial' });
+        const monthlyLicenses = await License.countDocuments({ type: 'monthly' });
+        const sixMonthsLicenses = await License.countDocuments({ type: '6months' });
+        const yearlyLicenses = await License.countDocuments({ type: 'yearly' });
+        const lifetimeLicenses = await License.countDocuments({ type: 'lifetime' });
+
         const totalTrials = await User.countDocuments({ trialUsed: true });
-        const activeSubscriptions = await User.countDocuments({
-            licenseType: { $nin: ['none', 'revoked'] }
-        });
+        const totalUsers = await User.countDocuments();
 
         const stats = {
             totalLicenses,
             activeLicenses,
-            usedLicenses: 0, // Logic TBD
+            suspendedLicenses,
             revokedLicenses,
+            expiredLicenses,
             totalTrials,
-            activeSubscriptions
+            totalUsers,
+            byType: {
+                trial: trialLicenses,
+                monthly: monthlyLicenses,
+                sixMonths: sixMonthsLicenses,
+                yearly: yearlyLicenses,
+                lifetime: lifetimeLicenses
+            }
         };
         res.json(stats);
     } catch (error) {
+        console.error('Stats error:', error);
         res.status(500).json({ error: 'Error fetching stats' });
     }
 });
 
+// GET /api/admin/licenses - List all licenses with optional filters
 app.get('/api/admin/licenses', adminAuth, async (req, res) => {
     try {
-        const licenses = await License.find().sort({ createdAt: -1 });
+        const { email, type, status, search } = req.query;
+
+        let query = {};
+
+        if (email) query.email = new RegExp(email, 'i');
+        if (type) query.type = type;
+        if (status) query.status = status;
+        if (search) {
+            query.$or = [
+                { email: new RegExp(search, 'i') },
+                { key: new RegExp(search, 'i') },
+                { notes: new RegExp(search, 'i') }
+            ];
+        }
+
+        const licenses = await License.find(query).sort({ createdAt: -1 });
+
         const mapped = licenses.map(l => ({
-            id: l.token,
-            key: l.token,
-            plan: l.payload.type,
+            id: l._id,
+            key: l.key || l.token,
+            email: l.email,
+            type: l.type,
             status: l.status,
-            created_at: l.createdAt,
-            expires_at: null,
-            email: l.payload.email,
-            notes: l.payload.notes
+            startDate: l.startDate,
+            endDate: l.endDate,
+            daysRemaining: l.daysRemaining,
+            notes: l.notes,
+            createdAt: l.createdAt,
+            updatedAt: l.updatedAt
         }));
+
         res.json(mapped);
     } catch (error) {
+        console.error('List licenses error:', error);
         res.status(500).json({ error: 'Error fetching licenses' });
     }
 });
 
+// POST /api/admin/licenses - Generate a new license
 app.post('/api/admin/licenses', adminAuth, async (req, res) => {
-    const { plan, notes } = req.body;
-    const days = plan === 'yearly' ? 365 : plan === 'monthly' ? 30 : 7;
-
-    const payload = {
-        id: uuidv4(),
-        days,
-        type: plan,
-        notes,
-        created: new Date()
-    };
-    const token = jwt.sign(payload, SECRET_KEY);
-
     try {
+        const { email, type, notes } = req.body;
+
+        if (!email || !type) {
+            return res.status(400).json({ error: 'Email and type are required' });
+        }
+
+        // Check if trial already used for this email
+        if (type === 'trial') {
+            const user = await User.findOne({ email });
+            if (user && user.trialUsed) {
+                return res.status(400).json({
+                    error: 'Trial already used for this email',
+                    trialDate: user.trialDate
+                });
+            }
+        }
+
+        // Calculate end date
+        const duration = getLicenseDuration(type);
+        const startDate = new Date();
+        const endDate = duration === -1 ? null : new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
+
+        // Generate unique key
+        const key = jwt.sign({
+            id: uuidv4(),
+            email,
+            type,
+            created: startDate
+        }, SECRET_KEY);
+
+        // Create license
         const newLicense = new License({
-            token,
-            payload,
-            status: 'active'
+            key,
+            email,
+            type,
+            status: 'active',
+            startDate,
+            endDate,
+            daysRemaining: duration === -1 ? -1 : duration,
+            notes,
+            // Legacy fields
+            token: key,
+            payload: { email, type, notes }
         });
+
         await newLicense.save();
 
+        // Update user if trial
+        if (type === 'trial') {
+            await User.updateOne(
+                { email },
+                {
+                    trialUsed: true,
+                    trialDate: startDate,
+                    currentLicense: key,
+                    $push: { licenseHistory: key }
+                },
+                { upsert: true }
+            );
+        }
+
         res.json({
+            success: true,
             license: {
-                key: token,
-                plan,
-                status: 'active'
+                id: newLicense._id,
+                key: newLicense.key,
+                email: newLicense.email,
+                type: newLicense.type,
+                status: newLicense.status,
+                startDate: newLicense.startDate,
+                endDate: newLicense.endDate,
+                daysRemaining: newLicense.daysRemaining
             }
         });
     } catch (error) {
+        console.error('Create license error:', error);
         res.status(500).json({ error: 'Error creating license' });
     }
 });
+
+// PUT /api/admin/licenses/:id/suspend - Suspend a license
+app.put('/api/admin/licenses/:id/suspend', adminAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const license = await License.findById(id);
+
+        if (!license) {
+            return res.status(404).json({ error: 'License not found' });
+        }
+
+        license.status = 'suspended';
+        await license.save();
+
+        res.json({
+            success: true,
+            message: 'License suspended',
+            license: {
+                id: license._id,
+                key: license.key,
+                status: license.status
+            }
+        });
+    } catch (error) {
+        console.error('Suspend license error:', error);
+        res.status(500).json({ error: 'Error suspending license' });
+    }
+});
+
+// PUT /api/admin/licenses/:id/activate - Activate/Reactivate a license
+app.put('/api/admin/licenses/:id/activate', adminAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const license = await License.findById(id);
+
+        if (!license) {
+            return res.status(404).json({ error: 'License not found' });
+        }
+
+        // Check if license is expired
+        if (license.endDate && new Date() > new Date(license.endDate)) {
+            return res.status(400).json({ error: 'Cannot activate expired license' });
+        }
+
+        license.status = 'active';
+        await license.save();
+
+        res.json({
+            success: true,
+            message: 'License activated',
+            license: {
+                id: license._id,
+                key: license.key,
+                status: license.status
+            }
+        });
+    } catch (error) {
+        console.error('Activate license error:', error);
+        res.status(500).json({ error: 'Error activating license' });
+    }
+});
+
+// GET /api/admin/export/csv - Export all licenses to CSV
+app.get('/api/admin/export/csv', adminAuth, async (req, res) => {
+    try {
+        const licenses = await License.find().sort({ createdAt: -1 });
+
+        // CSV Header
+        const csvHeader = 'Email,License Key,Type,Status,Start Date,End Date,Days Remaining,Notes,Created At\n';
+
+        // CSV Rows
+        const csvRows = licenses.map(l => {
+            const email = l.email || '';
+            const key = l.key || l.token || '';
+            const type = l.type || '';
+            const status = l.status || '';
+            const startDate = l.startDate ? new Date(l.startDate).toLocaleDateString() : '';
+            const endDate = l.endDate ? new Date(l.endDate).toLocaleDateString() : 'Unlimited';
+            const daysRemaining = l.daysRemaining === -1 ? 'Unlimited' : (l.daysRemaining || 0);
+            const notes = (l.notes || '').replace(/,/g, ';'); // Replace commas in notes
+            const createdAt = new Date(l.createdAt).toLocaleDateString();
+
+            return `${email},${key},${type},${status},${startDate},${endDate},${daysRemaining},${notes},${createdAt}`;
+        }).join('\n');
+
+        const csv = csvHeader + csvRows;
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=licenses_${new Date().toISOString().split('T')[0]}.csv`);
+        res.send(csv);
+    } catch (error) {
+        console.error('Export CSV error:', error);
+        res.status(500).json({ error: 'Error exporting CSV' });
+    }
+});
+
 
 app.get('/api/admin/trials', adminAuth, async (req, res) => {
     try {
