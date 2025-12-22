@@ -63,16 +63,26 @@ app.use((req, res, next) => {
 // MongoDB Connection
 if (!MONGODB_URI) {
     console.error('❌ CRITICAL: MONGODB_URI is not defined in environment variables!');
+} else {
+    console.log('Attempting to connect to MongoDB...');
+    // Masked URI for debugging
+    const maskedUri = MONGODB_URI.replace(/:([^@]+)@/, ':****@');
+    console.log('URI:', maskedUri);
 }
 
 mongoose.connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
+    serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+    connectTimeoutMS: 10000,
 }).then(() => {
     console.log('✅ MongoDB connected successfully');
 }).catch(err => {
-    console.error('❌ MongoDB connection error:', err.message);
-    console.error('Please check if your MONGODB_URI is correct and your IP is whitelisted in MongoDB Atlas.');
+    console.error('❌ MongoDB connection error:', err.name, ':', err.message);
+    if (err.name === 'MongoParseError') {
+        console.error('Check for special characters in your password. Use URL encoding if necessary.');
+    } else if (err.name === 'MongoServerSelectionError') {
+        console.error('This is usually an IP Whitelist issue in MongoDB Atlas or a network blockage.');
+    }
+    console.error('Full error:', err);
 });
 
 // MongoDB Schemas
@@ -773,14 +783,23 @@ app.delete('/api/admin/licenses/:id', adminAuth, async (req, res) => {
 });
 
 // --- Serve React Frontend ---
-const distPath = path.join(__dirname, '../dist');
+// On Render, the build command creates 'dist' in the root.
+// If server.js is in 'sniperabonment/', then dist is at '../dist'
+const distPath = path.resolve(__dirname, '../dist');
+console.log('Serving frontend from:', distPath);
+
 app.use(express.static(distPath));
 
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
-// NOTE: Express 5 requires (.*) instead of * for wildcard
 app.get(/(.*)/, (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
+    const indexPath = path.join(distPath, 'index.html');
+    res.sendFile(indexPath, (err) => {
+        if (err) {
+            console.error('Error sending index.html:', err.message, 'at path:', indexPath);
+            res.status(404).send('Frontend build not found. Please ensure "npm run build" completed successfully.');
+        }
+    });
 });
 
 app.listen(PORT, () => {
