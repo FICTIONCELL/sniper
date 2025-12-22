@@ -9,56 +9,43 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, Eye, EyeOff, RefreshCw, Download, AlertCircle } from "lucide-react";
+import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, RefreshCw, Download, AlertCircle, Search, Play, Pause, CheckCircle, XCircle, Clock, TrendingUp, Calendar } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Capacitor } from "@capacitor/core";
 import { useGoogleDrive } from "@/contexts/GoogleDriveContext";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://sniper-rptn.onrender.com";
 const ADMIN_EMAIL = "fictionsell@gmail.com";
-const ADMIN_PASSWORD = "127.0.0.1"; // Backend password for API calls
+const ADMIN_PASSWORD = "127.0.0.1";
 
 interface License {
     id: string;
     key: string;
-    plan: string;
-    status: string;
-    created_at: string;
-    activated_at?: string;
-    expires_at?: string;
-    machine_id?: string;
-    email?: string;
+    email: string;
+    type: 'trial' | 'monthly' | '6months' | 'yearly' | 'lifetime';
+    status: 'active' | 'suspended' | 'revoked' | 'expired';
+    startDate: string;
+    endDate?: string;
+    daysRemaining: number;
     notes?: string;
-}
-
-interface Trial {
-    id: string;
-    machine_id: string;
-    email: string;
-    device_name: string;
-    started_at: string;
-    expired_at: string;
-}
-
-interface Subscription {
-    id: string;
-    license_id?: string;
-    license_key?: string;
-    machine_id: string;
-    email: string;
-    plan: string;
-    status: string;
-    started_at: string;
-    expires_at?: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 interface Stats {
     totalLicenses: number;
     activeLicenses: number;
-    usedLicenses: number;
+    suspendedLicenses: number;
     revokedLicenses: number;
+    expiredLicenses: number;
     totalTrials: number;
-    activeSubscriptions: number;
+    totalUsers: number;
+    byType: {
+        trial: number;
+        monthly: number;
+        sixMonths: number;
+        yearly: number;
+        lifetime: number;
+    };
 }
 
 const Admin = () => {
@@ -67,13 +54,18 @@ const Admin = () => {
     const [isAuthorized, setIsAuthorized] = useState(false);
 
     const [licenses, setLicenses] = useState<License[]>([]);
-    const [trials, setTrials] = useState<Trial[]>([]);
-    const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
-
-    const [newLicensePlan, setNewLicensePlan] = useState<string>("yearly");
-    const [newLicenseNotes, setNewLicenseNotes] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    // Form states
+    const [newEmail, setNewEmail] = useState("");
+    const [newType, setNewType] = useState<string>("monthly");
+    const [newNotes, setNewNotes] = useState("");
+
+    // Filter states
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filterType, setFilterType] = useState<string>("all");
+    const [filterStatus, setFilterStatus] = useState<string>("all");
 
     // Check if user is authorized admin
     useEffect(() => {
@@ -90,24 +82,40 @@ const Admin = () => {
         try {
             const headers = { "x-admin-password": ADMIN_PASSWORD };
 
-            const [licensesRes, trialsRes, subsRes, statsRes] = await Promise.all([
+            const [licensesRes, statsRes] = await Promise.all([
                 fetch(`${API_URL}/api/admin/licenses`, { headers }),
-                fetch(`${API_URL}/api/admin/trials`, { headers }),
-                fetch(`${API_URL}/api/admin/subscriptions`, { headers }),
                 fetch(`${API_URL}/api/admin/stats`, { headers })
             ]);
 
-            if (licensesRes.ok) setLicenses(await licensesRes.json());
-            if (trialsRes.ok) setTrials(await trialsRes.json());
-            if (subsRes.ok) setSubscriptions(await subsRes.json());
-            if (statsRes.ok) setStats(await statsRes.json());
+            if (licensesRes.ok) {
+                const data = await licensesRes.json();
+                setLicenses(data);
+            }
+            if (statsRes.ok) {
+                const data = await statsRes.json();
+                setStats(data);
+            }
         } catch (error) {
-            toast({ title: "Erreur", description: "Impossible de charger les données.", variant: "destructive" });
+            console.error('Load data error:', error);
+            toast({
+                title: "Erreur",
+                description: "Impossible de charger les données.",
+                variant: "destructive"
+            });
         }
         setIsLoading(false);
     };
 
     const generateLicense = async () => {
+        if (!newEmail || !newType) {
+            toast({
+                title: "Erreur",
+                description: "Email et type sont requis.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         try {
             const response = await fetch(`${API_URL}/api/admin/licenses`, {
                 method: "POST",
@@ -115,22 +123,77 @@ const Admin = () => {
                     "Content-Type": "application/json",
                     "x-admin-password": ADMIN_PASSWORD
                 },
-                body: JSON.stringify({ plan: newLicensePlan, notes: newLicenseNotes })
+                body: JSON.stringify({
+                    email: newEmail,
+                    type: newType,
+                    notes: newNotes
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                toast({
+                    title: "✅ Licence générée",
+                    description: `Clé créée pour ${newEmail}`
+                });
+                setNewEmail("");
+                setNewNotes("");
+                loadAllData();
+            } else {
+                toast({
+                    title: "Erreur",
+                    description: data.error || "Impossible de générer la licence.",
+                    variant: "destructive"
+                });
+            }
+        } catch (error) {
+            console.error('Generate license error:', error);
+            toast({
+                title: "Erreur",
+                description: "Erreur serveur.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const suspendLicense = async (id: string) => {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/licenses/${id}/suspend`, {
+                method: "PUT",
+                headers: { "x-admin-password": ADMIN_PASSWORD }
             });
 
             if (response.ok) {
-                const data = await response.json();
-                toast({
-                    title: "Licence générée",
-                    description: `Clé: ${data.license.key}`
-                });
-                setNewLicenseNotes("");
+                toast({ title: "✅ Licence suspendue" });
                 loadAllData();
-            } else {
-                toast({ title: "Erreur", description: "Impossible de générer la licence.", variant: "destructive" });
             }
         } catch (error) {
-            toast({ title: "Erreur", description: "Erreur serveur.", variant: "destructive" });
+            toast({ title: "Erreur", variant: "destructive" });
+        }
+    };
+
+    const activateLicense = async (id: string) => {
+        try {
+            const response = await fetch(`${API_URL}/api/admin/licenses/${id}/activate`, {
+                method: "PUT",
+                headers: { "x-admin-password": ADMIN_PASSWORD }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                toast({ title: "✅ Licence activée" });
+                loadAllData();
+            } else {
+                toast({
+                    title: "Erreur",
+                    description: data.error,
+                    variant: "destructive"
+                });
+            }
+        } catch (error) {
+            toast({ title: "Erreur", variant: "destructive" });
         }
     };
 
@@ -142,7 +205,7 @@ const Admin = () => {
             });
 
             if (response.ok) {
-                toast({ title: "Licence révoquée" });
+                toast({ title: "✅ Licence révoquée" });
                 loadAllData();
             }
         } catch (error) {
@@ -158,7 +221,7 @@ const Admin = () => {
             });
 
             if (response.ok) {
-                toast({ title: "Licence supprimée" });
+                toast({ title: "✅ Licence supprimée" });
                 loadAllData();
             }
         } catch (error) {
@@ -166,85 +229,53 @@ const Admin = () => {
         }
     };
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        toast({ title: "Copié!", description: text });
+    const exportCSV = () => {
+        window.open(`${API_URL}/api/admin/export/csv?password=${ADMIN_PASSWORD}`, '_blank');
+        toast({ title: "📥 Export en cours...", description: "Le fichier CSV va se télécharger." });
     };
 
-    const handleDownloadReport = () => {
-        if (subscriptions.length === 0) {
-            toast({ title: "Aucune donnée", description: "Il n'y a aucun abonnement à exporter." });
-            return;
-        }
-
-        // Prepare CSV data
-        const headers = ["Email", "Plan", "Statut", "Clé Licence", "Date Début", "Date Expiration", "Jours Restants"];
-        const rows = subscriptions.map(sub => {
-            const now = new Date();
-            const expires = sub.expires_at ? new Date(sub.expires_at) : null;
-            const daysRemaining = expires ? Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : "N/A";
-
-            return [
-                sub.email,
-                sub.plan,
-                sub.status,
-                sub.license_key || "N/A",
-                new Date(sub.started_at).toLocaleDateString(),
-                expires ? expires.toLocaleDateString() : "N/A",
-                daysRemaining
-            ];
-        });
-
-        const csvContent = [
-            headers.join(","),
-            ...rows.map(row => row.join(","))
-        ].join("\n");
-
-        // Create and download file
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `rapport_abonnements_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = "hidden";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        toast({ title: "Rapport téléchargé", description: "Le fichier CSV a été généré avec succès." });
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast({ title: "📋 Copié!", description: text.substring(0, 50) + "..." });
     };
 
     const getStatusBadge = (status: string) => {
         switch (status) {
             case "active":
-                return <Badge className="bg-green-500">Actif</Badge>;
-            case "used":
-                return <Badge className="bg-blue-500">Utilisé</Badge>;
+                return <Badge className="bg-green-500">🟢 Active</Badge>;
+            case "suspended":
+                return <Badge className="bg-yellow-500">🟡 Suspendue</Badge>;
             case "revoked":
-                return <Badge className="bg-red-500">Révoqué</Badge>;
+                return <Badge className="bg-red-500">🔴 Révoquée</Badge>;
             case "expired":
-                return <Badge className="bg-gray-500">Expiré</Badge>;
-            case "cancelled":
-                return <Badge className="bg-orange-500">Annulé</Badge>;
+                return <Badge className="bg-gray-500">⚫ Expirée</Badge>;
             default:
                 return <Badge>{status}</Badge>;
         }
     };
 
-    const getPlanBadge = (plan: string) => {
-        switch (plan) {
-            case "monthly":
-                return <Badge variant="outline">Mensuel</Badge>;
-            case "yearly":
-                return <Badge variant="outline" className="border-blue-500 text-blue-500">Annuel</Badge>;
-            case "lifetime":
-                return <Badge variant="outline" className="border-purple-500 text-purple-500">À vie</Badge>;
-            case "trial":
-                return <Badge variant="outline" className="border-yellow-500 text-yellow-500">Essai</Badge>;
-            default:
-                return <Badge variant="outline">{plan}</Badge>;
-        }
+    const getTypeBadge = (type: string) => {
+        const badges = {
+            trial: <Badge variant="outline" className="border-blue-500 text-blue-500">🔵 Trial</Badge>,
+            monthly: <Badge variant="outline">📅 Mensuel</Badge>,
+            '6months': <Badge variant="outline" className="border-purple-500 text-purple-500">📆 6 Mois</Badge>,
+            yearly: <Badge variant="outline" className="border-green-500 text-green-500">📊 Annuel</Badge>,
+            lifetime: <Badge variant="outline" className="border-yellow-500 text-yellow-500">👑 Lifetime</Badge>
+        };
+        return badges[type as keyof typeof badges] || <Badge>{type}</Badge>;
     };
+
+    // Filter licenses
+    const filteredLicenses = licenses.filter(license => {
+        const matchesSearch = searchQuery === "" ||
+            license.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            license.key.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesType = filterType === "all" || license.type === filterType;
+        const matchesStatus = filterStatus === "all" || license.status === filterStatus;
+
+        return matchesSearch && matchesType && matchesStatus;
+    });
 
     if (!isAuthorized) {
         return (
@@ -292,151 +323,241 @@ const Admin = () => {
         <div className="p-4 md:p-6 space-y-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold">Administration</h1>
-                    <p className="text-muted-foreground">Gérez les licences et abonnements</p>
+                    <h1 className="text-2xl md:text-3xl font-bold">🔐 Administration</h1>
+                    <p className="text-muted-foreground">Gestion complète des licences</p>
                 </div>
                 <div className="flex gap-2 w-full md:w-auto">
                     <Button variant="outline" onClick={() => loadAllData()} disabled={isLoading} className="flex-1 md:flex-none">
                         <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                         Actualiser
                     </Button>
-                    <Button variant="default" onClick={handleDownloadReport} disabled={isLoading || subscriptions.length === 0} className="flex-1 md:flex-none">
+                    <Button variant="default" onClick={exportCSV} disabled={isLoading} className="flex-1 md:flex-none">
                         <Download className="h-4 w-4 mr-2" />
                         Export CSV
                     </Button>
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            {stats && (
-                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
-                            <CardTitle className="text-sm font-medium">Licences</CardTitle>
-                            <Key className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                            <div className="text-2xl font-bold">{stats.totalLicenses}</div>
-                            <p className="text-xs text-muted-foreground">
-                                {stats.activeLicenses} dispo
-                            </p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
-                            <CardTitle className="text-sm font-medium">Essais</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                            <div className="text-2xl font-bold">{stats.totalTrials}</div>
-                            <p className="text-xs text-muted-foreground">Consommés</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
-                            <CardTitle className="text-sm font-medium">Actifs</CardTitle>
-                            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                            <div className="text-2xl font-bold">{stats.activeSubscriptions}</div>
-                            <p className="text-xs text-muted-foreground">Utilisateurs</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
-                            <CardTitle className="text-sm font-medium">Révoqués</CardTitle>
-                            <Ban className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                            <div className="text-2xl font-bold text-red-500">{stats.revokedLicenses}</div>
-                            <p className="text-xs text-muted-foreground">Bannis</p>
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
-
-            <Tabs defaultValue="licenses" className="space-y-4">
+            <Tabs defaultValue="dashboard" className="space-y-4">
                 <TabsList className="w-full justify-start overflow-x-auto">
-                    <TabsTrigger value="licenses">Licences</TabsTrigger>
-                    <TabsTrigger value="trials">Essais</TabsTrigger>
-                    <TabsTrigger value="subscriptions">Abonnements</TabsTrigger>
+                    <TabsTrigger value="dashboard">📊 Dashboard</TabsTrigger>
+                    <TabsTrigger value="licenses">🔑 Licences</TabsTrigger>
+                    <TabsTrigger value="generate">➕ Générer</TabsTrigger>
                 </TabsList>
+
+                {/* Dashboard Tab */}
+                <TabsContent value="dashboard" className="space-y-4">
+                    {stats && (
+                        <>
+                            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                                        <CardTitle className="text-sm font-medium">Total Licences</CardTitle>
+                                        <Key className="h-4 w-4 text-muted-foreground" />
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0">
+                                        <div className="text-2xl font-bold">{stats.totalLicenses}</div>
+                                        <p className="text-xs text-muted-foreground">
+                                            {stats.activeLicenses} actives
+                                        </p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                                        <CardTitle className="text-sm font-medium">Suspendues</CardTitle>
+                                        <Pause className="h-4 w-4 text-muted-foreground" />
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0">
+                                        <div className="text-2xl font-bold text-yellow-500">{stats.suspendedLicenses}</div>
+                                        <p className="text-xs text-muted-foreground">En pause</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                                        <CardTitle className="text-sm font-medium">Révoquées</CardTitle>
+                                        <Ban className="h-4 w-4 text-muted-foreground" />
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0">
+                                        <div className="text-2xl font-bold text-red-500">{stats.revokedLicenses}</div>
+                                        <p className="text-xs text-muted-foreground">Désactivées</p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
+                                        <CardTitle className="text-sm font-medium">Trials Utilisés</CardTitle>
+                                        <Users className="h-4 w-4 text-muted-foreground" />
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0">
+                                        <div className="text-2xl font-bold text-blue-500">{stats.totalTrials}</div>
+                                        <p className="text-xs text-muted-foreground">30 jours chacun</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>📈 Répartition par Type</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm">🔵 Trial (30j)</span>
+                                            <Badge>{stats.byType.trial}</Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm">📅 Mensuel</span>
+                                            <Badge>{stats.byType.monthly}</Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm">📆 6 Mois</span>
+                                            <Badge>{stats.byType.sixMonths}</Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm">📊 Annuel</span>
+                                            <Badge>{stats.byType.yearly}</Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm">👑 Lifetime</span>
+                                            <Badge>{stats.byType.lifetime}</Badge>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </>
+                    )}
+                </TabsContent>
 
                 {/* Licenses Tab */}
                 <TabsContent value="licenses" className="space-y-4">
+                    {/* Search and Filters */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Générer une nouvelle licence</CardTitle>
+                            <CardTitle>🔍 Recherche et Filtres</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex flex-col md:flex-row gap-4 items-end">
-                                <div className="space-y-2 w-full md:w-auto">
-                                    <Label>Type de plan</Label>
-                                    <Select value={newLicensePlan} onValueChange={setNewLicensePlan}>
-                                        <SelectTrigger className="w-full md:w-40">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Recherche</Label>
+                                    <div className="relative">
+                                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Email ou clé..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="pl-8"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Type</Label>
+                                    <Select value={filterType} onValueChange={setFilterType}>
+                                        <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value="all">Tous</SelectItem>
+                                            <SelectItem value="trial">Trial</SelectItem>
                                             <SelectItem value="monthly">Mensuel</SelectItem>
+                                            <SelectItem value="6months">6 Mois</SelectItem>
                                             <SelectItem value="yearly">Annuel</SelectItem>
-                                            <SelectItem value="lifetime">À vie</SelectItem>
+                                            <SelectItem value="lifetime">Lifetime</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="flex-1 space-y-2 w-full">
-                                    <Label>Notes (optionnel)</Label>
-                                    <Input
-                                        value={newLicenseNotes}
-                                        onChange={(e) => setNewLicenseNotes(e.target.value)}
-                                        placeholder="Ex: Client XYZ..."
-                                    />
+                                <div className="space-y-2">
+                                    <Label>Statut</Label>
+                                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Tous</SelectItem>
+                                            <SelectItem value="active">Active</SelectItem>
+                                            <SelectItem value="suspended">Suspendue</SelectItem>
+                                            <SelectItem value="revoked">Révoquée</SelectItem>
+                                            <SelectItem value="expired">Expirée</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
-                                <Button onClick={generateLicense} className="w-full md:w-auto">
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Générer
-                                </Button>
                             </div>
                         </CardContent>
                     </Card>
 
+                    {/* Licenses Table */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Liste des licences ({licenses.length})</CardTitle>
+                            <CardTitle>📋 Liste des Licences ({filteredLicenses.length})</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0 md:p-6">
                             <div className="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Clé</TableHead>
-                                            <TableHead>Plan</TableHead>
-                                            <TableHead>Statut</TableHead>
                                             <TableHead>Email</TableHead>
-                                            <TableHead>Créée le</TableHead>
-                                            <TableHead>Expire le</TableHead>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead>Statut</TableHead>
+                                            <TableHead>Jours Restants</TableHead>
+                                            <TableHead>Date Fin</TableHead>
                                             <TableHead>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {licenses.map((license) => (
+                                        {filteredLicenses.map((license) => (
                                             <TableRow key={license.id}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <code className="text-xs bg-muted px-2 py-1 rounded whitespace-nowrap">{license.key}</code>
-                                                        <Button variant="ghost" size="sm" onClick={() => copyToClipboard(license.key)}>
+                                                        <span className="font-medium">{license.email}</span>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => copyToClipboard(license.key)}
+                                                        >
                                                             <Copy className="h-3 w-3" />
                                                         </Button>
                                                     </div>
+                                                    {license.notes && (
+                                                        <p className="text-xs text-muted-foreground">{license.notes}</p>
+                                                    )}
                                                 </TableCell>
-                                                <TableCell>{getPlanBadge(license.plan)}</TableCell>
+                                                <TableCell>{getTypeBadge(license.type)}</TableCell>
                                                 <TableCell>{getStatusBadge(license.status)}</TableCell>
-                                                <TableCell>{license.email || "-"}</TableCell>
-                                                <TableCell className="whitespace-nowrap">{new Date(license.created_at).toLocaleDateString()}</TableCell>
+                                                <TableCell>
+                                                    {license.daysRemaining === -1 ? (
+                                                        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+                                                            ∞ Illimité
+                                                        </Badge>
+                                                    ) : (
+                                                        <span className={license.daysRemaining < 7 ? "text-red-500 font-bold" : ""}>
+                                                            {license.daysRemaining} jours
+                                                        </span>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell className="whitespace-nowrap">
-                                                    {license.expires_at ? new Date(license.expires_at).toLocaleDateString() : "-"}
+                                                    {license.endDate ? new Date(license.endDate).toLocaleDateString() : "Aucune"}
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex gap-1">
+                                                        {license.status === "active" && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => suspendLicense(license.id)}
+                                                            >
+                                                                <Pause className="h-3 w-3" />
+                                                            </Button>
+                                                        )}
+                                                        {license.status === "suspended" && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => activateLicense(license.id)}
+                                                            >
+                                                                <Play className="h-3 w-3" />
+                                                            </Button>
+                                                        )}
                                                         {license.status !== "revoked" && (
                                                             <AlertDialog>
                                                                 <AlertDialogTrigger asChild>
@@ -448,7 +569,7 @@ const Admin = () => {
                                                                     <AlertDialogHeader>
                                                                         <AlertDialogTitle>Révoquer la licence?</AlertDialogTitle>
                                                                         <AlertDialogDescription>
-                                                                            Cette action désactivera la licence.
+                                                                            Cette action désactivera définitivement la licence.
                                                                         </AlertDialogDescription>
                                                                     </AlertDialogHeader>
                                                                     <AlertDialogFooter>
@@ -470,7 +591,7 @@ const Admin = () => {
                                                                 <AlertDialogHeader>
                                                                     <AlertDialogTitle>Supprimer?</AlertDialogTitle>
                                                                     <AlertDialogDescription>
-                                                                        Irréversible.
+                                                                        Cette action est irréversible.
                                                                     </AlertDialogDescription>
                                                                 </AlertDialogHeader>
                                                                 <AlertDialogFooter>
@@ -485,113 +606,68 @@ const Admin = () => {
                                                 </TableCell>
                                             </TableRow>
                                         ))}
-                                        {licenses.length === 0 && (
-                                            <TableRow>
-                                                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                                                    Aucune licence générée
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Trials Tab */}
-                <TabsContent value="trials" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Essais utilisés ({trials.length})</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0 md:p-6">
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Email</TableHead>
-                                            <TableHead>Appareil</TableHead>
-                                            <TableHead>Machine ID</TableHead>
-                                            <TableHead>Début</TableHead>
-                                            <TableHead>Fin</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {trials.map((trial) => (
-                                            <TableRow key={trial.id}>
-                                                <TableCell>{trial.email}</TableCell>
-                                                <TableCell>{trial.device_name}</TableCell>
-                                                <TableCell>
-                                                    <code className="text-xs bg-muted px-2 py-1 rounded whitespace-nowrap">
-                                                        {trial.machine_id.substring(0, 8)}...
-                                                    </code>
-                                                </TableCell>
-                                                <TableCell className="whitespace-nowrap">{new Date(trial.started_at).toLocaleDateString()}</TableCell>
-                                                <TableCell className="whitespace-nowrap">{new Date(trial.expired_at).toLocaleDateString()}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                        {trials.length === 0 && (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                                                    Aucun essai utilisé
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Subscriptions Tab */}
-                <TabsContent value="subscriptions" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Abonnements ({subscriptions.length})</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0 md:p-6">
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Email</TableHead>
-                                            <TableHead>Plan</TableHead>
-                                            <TableHead>Statut</TableHead>
-                                            <TableHead>Licence</TableHead>
-                                            <TableHead>Début</TableHead>
-                                            <TableHead>Expiration</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {subscriptions.map((sub) => (
-                                            <TableRow key={sub.id}>
-                                                <TableCell>{sub.email}</TableCell>
-                                                <TableCell>{getPlanBadge(sub.plan)}</TableCell>
-                                                <TableCell>{getStatusBadge(sub.status)}</TableCell>
-                                                <TableCell>
-                                                    {sub.license_key ? (
-                                                        <code className="text-xs bg-muted px-2 py-1 rounded whitespace-nowrap">{sub.license_key}</code>
-                                                    ) : (
-                                                        "-"
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="whitespace-nowrap">{new Date(sub.started_at).toLocaleDateString()}</TableCell>
-                                                <TableCell className="whitespace-nowrap">
-                                                    {sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : "-"}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                        {subscriptions.length === 0 && (
+                                        {filteredLicenses.length === 0 && (
                                             <TableRow>
                                                 <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                                    Aucun abonnement
+                                                    Aucune licence trouvée
                                                 </TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
                                 </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Generate Tab */}
+                <TabsContent value="generate" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>➕ Générer une Nouvelle Licence</CardTitle>
+                            <CardDescription>
+                                Créer une licence pour un email spécifique.
+                                ⚠️ Trial : 1 seul par email (30 jours)
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>Email *</Label>
+                                    <Input
+                                        type="email"
+                                        placeholder="utilisateur@example.com"
+                                        value={newEmail}
+                                        onChange={(e) => setNewEmail(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Type de Licence *</Label>
+                                    <Select value={newType} onValueChange={setNewType}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="trial">🔵 Trial (30 jours)</SelectItem>
+                                            <SelectItem value="monthly">📅 Mensuel (30 jours)</SelectItem>
+                                            <SelectItem value="6months">📆 6 Mois (180 jours)</SelectItem>
+                                            <SelectItem value="yearly">📊 Annuel (365 jours)</SelectItem>
+                                            <SelectItem value="lifetime">👑 Lifetime (Illimité)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Notes (optionnel)</Label>
+                                    <Input
+                                        placeholder="Ex: Promo, Bonus, VIP..."
+                                        value={newNotes}
+                                        onChange={(e) => setNewNotes(e.target.value)}
+                                    />
+                                </div>
+                                <Button onClick={generateLicense} className="w-full" disabled={isLoading}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Générer la Licence
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
