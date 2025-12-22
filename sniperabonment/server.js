@@ -321,12 +321,25 @@ app.post('/api/admin/licenses', adminAuth, async (req, res) => {
 app.get('/api/admin/export/csv', adminAuth, async (req, res) => {
     try {
         const licenses = await License.find().sort({ createdAt: -1 });
-        const csvHeader = 'Email,License Key,Type,Status,Start Date,End Date,Days Remaining,Notes\n';
-        const csvRows = licenses.map(l => `${l.email},${l.key},${l.type},${l.status},${l.startDate},${l.endDate},${l.daysRemaining},${l.notes}`).join('\n');
+
+        // CSV Header
+        const csvHeader = 'License Key,Email,Type,Status,Start Date,End Date,Days Remaining,Notes\n';
+
+        // CSV Rows
+        const csvRows = licenses.map(l => {
+            const startDate = l.startDate ? new Date(l.startDate).toISOString().split('T')[0] : '';
+            const endDate = l.endDate ? new Date(l.endDate).toISOString().split('T')[0] : (l.type === 'lifetime' ? 'Unlimited' : '');
+            const daysRemaining = l.type === 'lifetime' ? 'Unlimited' : (l.daysRemaining || 0);
+            const notes = (l.notes || '').replace(/,/g, ';'); // Replace commas to avoid CSV breakage
+
+            return `${l.key},${l.email},${l.type},${l.status},${startDate},${endDate},${daysRemaining},"${notes}"`;
+        }).join('\n');
+
         res.setHeader('Content-Type', 'text/csv');
-        res.setHeader('Content-Disposition', 'attachment; filename=licenses.csv');
+        res.setHeader('Content-Disposition', `attachment; filename=licenses_export_${new Date().toISOString().split('T')[0]}.csv`);
         res.send(csvHeader + csvRows);
     } catch (error) {
+        console.error('Export CSV error:', error);
         res.status(500).json({ error: 'Error exporting CSV' });
     }
 });
