@@ -146,7 +146,7 @@ licenseSchema.virtual('calculatedDaysRemaining').get(function () {
 });
 
 // Update daysRemaining before saving
-licenseSchema.pre('save', function (next) {
+licenseSchema.pre('save', function () {
     if (this.type === 'lifetime') {
         this.daysRemaining = -1;
         this.endDate = null;
@@ -163,7 +163,6 @@ licenseSchema.pre('save', function (next) {
         }
     }
     this.updatedAt = new Date();
-    next();
 });
 
 const User = mongoose.model('User', userSchema);
@@ -786,7 +785,25 @@ app.delete('/api/admin/licenses/:id', adminAuth, async (req, res) => {
 // On Render, the build command creates 'dist' in the root.
 // If server.js is in 'sniperabonment/', then dist is at '../dist'
 const distPath = path.resolve(__dirname, '../dist');
+const rootPath = path.resolve(__dirname, '..');
+
 console.log('Serving frontend from:', distPath);
+console.log('Root path:', rootPath);
+
+// Diagnostic: List files in root and dist
+import { readdirSync, existsSync } from 'fs';
+try {
+    if (existsSync(rootPath)) {
+        console.log('Files in root:', readdirSync(rootPath));
+    }
+    if (existsSync(distPath)) {
+        console.log('Files in dist:', readdirSync(distPath));
+    } else {
+        console.log('⚠️ dist directory does not exist at:', distPath);
+    }
+} catch (err) {
+    console.error('Diagnostic failed:', err.message);
+}
 
 app.use(express.static(distPath));
 
@@ -794,10 +811,14 @@ app.use(express.static(distPath));
 // match one above, send back React's index.html file.
 app.get(/(.*)/, (req, res) => {
     const indexPath = path.join(distPath, 'index.html');
+    if (!existsSync(indexPath)) {
+        console.error('❌ index.html NOT FOUND at:', indexPath);
+        return res.status(404).send(`Frontend build not found. index.html missing at ${indexPath}`);
+    }
     res.sendFile(indexPath, (err) => {
         if (err) {
-            console.error('Error sending index.html:', err.message, 'at path:', indexPath);
-            res.status(404).send('Frontend build not found. Please ensure "npm run build" completed successfully.');
+            console.error('Error sending index.html:', err.message);
+            res.status(err.status || 500).end();
         }
     });
 });
