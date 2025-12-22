@@ -792,7 +792,7 @@ app.post('/api/revoke', async (req, res) => {
 app.put('/api/admin/licenses/:id/revoke', adminAuth, async (req, res) => {
     const { id } = req.params;
     try {
-        const license = await License.findOne({ token: id });
+        const license = await License.findById(id);
         if (license) {
             license.status = 'revoked';
             await license.save();
@@ -800,6 +800,7 @@ app.put('/api/admin/licenses/:id/revoke', adminAuth, async (req, res) => {
         }
         res.status(404).json({ error: 'License not found' });
     } catch (error) {
+        console.error('Revoke license error:', error);
         res.status(500).json({ error: 'Error revoking license' });
     }
 });
@@ -807,12 +808,13 @@ app.put('/api/admin/licenses/:id/revoke', adminAuth, async (req, res) => {
 app.delete('/api/admin/licenses/:id', adminAuth, async (req, res) => {
     const { id } = req.params;
     try {
-        const result = await License.deleteOne({ token: id });
-        if (result.deletedCount > 0) {
+        const result = await License.findByIdAndDelete(id);
+        if (result) {
             return res.json({ message: 'License deleted' });
         }
         res.status(404).json({ error: 'License not found' });
     } catch (error) {
+        console.error('Delete license error:', error);
         res.status(500).json({ error: 'Error deleting license' });
     }
 });
