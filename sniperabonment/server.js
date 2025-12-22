@@ -146,7 +146,7 @@ licenseSchema.virtual('calculatedDaysRemaining').get(function () {
 });
 
 // Update daysRemaining before saving
-licenseSchema.pre('save', function (next) {
+licenseSchema.pre('save', function () {
     if (!this.startDate) {
         this.startDate = new Date();
     }
@@ -181,7 +181,6 @@ licenseSchema.pre('save', function (next) {
         }
     }
     this.updatedAt = new Date();
-    next();
 });
 
 const User = mongoose.model('User', userSchema);
