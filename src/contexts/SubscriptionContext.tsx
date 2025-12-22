@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useDevice } from '@/contexts/DeviceContext';
 
-const API_URL = "https://sniper-rptn.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "https://sniper-rptn.onrender.com";
 
 export type SubscriptionStatus = 'trial' | 'active' | 'expired' | 'inactive';
 export type SubscriptionPlan = 'trial' | 'monthly' | 'yearly' | 'lifetime';
@@ -27,6 +27,8 @@ export interface UsageLimits {
 
 interface TrialCheckResult {
     canStartTrial: boolean;
+    trialUsed?: boolean;
+    licenseKey?: string;
     previousTrial?: {
         started_at: string;
         expired_at: string;

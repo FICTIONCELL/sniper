@@ -15,6 +15,7 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const navigate = useNavigate();
+    const API_URL = import.meta.env.VITE_API_URL || "https://sniper-rptn.onrender.com";
 
     useEffect(() => {
         // Initialize Google Auth using centralized service
@@ -36,7 +37,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             // Call API
             try {
-                await fetch('https://sniper-rptn.onrender.com/api/register-machine', {
+                await fetch(`${API_URL}/api/register-machine`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
