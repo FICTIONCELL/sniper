@@ -147,19 +147,21 @@ licenseSchema.virtual('calculatedDaysRemaining').get(function () {
 
 // Update daysRemaining before saving
 licenseSchema.pre('save', function () {
-    if (this.type === 'lifetime') {
-        this.daysRemaining = -1;
-        this.endDate = null;
-    } else if (this.endDate) {
-        const now = new Date();
-        const end = new Date(this.endDate);
-        const diffTime = end - now;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        this.daysRemaining = diffDays > 0 ? diffDays : 0;
+    if (!this.startDate) {
+        this.startDate = new Date();
+    }
 
-        // Auto-expire if days remaining is 0
-        if (this.daysRemaining === 0 && this.status === 'active') {
-            this.status = 'expired';
+    if (this.type !== 'lifetime') {
+        const durations = {
+            trial: 30,
+            monthly: 30,
+            '6months': 180,
+            yearly: 365
+        };
+
+        const days = durations[this.type];
+        if (days) {
+            this.endDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
         }
     }
     this.updatedAt = new Date();
@@ -781,46 +783,11 @@ app.delete('/api/admin/licenses/:id', adminAuth, async (req, res) => {
     }
 });
 
-// --- Serve React Frontend ---
-// On Render, the build command creates 'dist' in the root.
-// If server.js is in 'sniperabonment/', then dist is at '../dist'
-const distPath = path.resolve(__dirname, '../dist');
-const rootPath = path.resolve(__dirname, '..');
-
-console.log('Serving frontend from:', distPath);
-console.log('Root path:', rootPath);
-
-// Diagnostic: List files in root and dist
-import { readdirSync, existsSync } from 'fs';
-try {
-    if (existsSync(rootPath)) {
-        console.log('Files in root:', readdirSync(rootPath));
-    }
-    if (existsSync(distPath)) {
-        console.log('Files in dist:', readdirSync(distPath));
-    } else {
-        console.log('⚠️ dist directory does not exist at:', distPath);
-    }
-} catch (err) {
-    console.error('Diagnostic failed:', err.message);
-}
-
-app.use(express.static(distPath));
-
-// The "catchall" handler: for any request that doesn't
-// match one above, send back React's index.html file.
-app.get(/(.*)/, (req, res) => {
-    const indexPath = path.join(distPath, 'index.html');
-    if (!existsSync(indexPath)) {
-        console.error('❌ index.html NOT FOUND at:', indexPath);
-        return res.status(404).send(`Frontend build not found. index.html missing at ${indexPath}`);
-    }
-    res.sendFile(indexPath, (err) => {
-        if (err) {
-            console.error('Error sending index.html:', err.message);
-            res.status(err.status || 500).end();
-        }
-    });
+// --- API Only Mode ---
+// Static serving removed to avoid ENOENT errors on Render.
+// The frontend is served by a separate static service.
+app.get('/', (req, res) => {
+    res.json({ message: "Sniper License API is running" });
 });
 
 app.listen(PORT, () => {
