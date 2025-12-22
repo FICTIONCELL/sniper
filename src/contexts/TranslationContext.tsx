@@ -461,6 +461,23 @@ const translations = {
     eraseData: "Effacer données",
     eraseAllData: "Effacer toutes les données",
     eraseAllDataDescription: "Supprimer définitivement toutes les données de l'application (CODE: 1270)",
+
+    // Notifications
+    taskProgressTitle: "Progression de la tâche",
+    projectProgressTitle: "Progression du projet",
+    progressReminderDesc: "{name} : {remaining}% restant.",
+    unresolvedReservesTitle: "Réserves en attente",
+    unresolvedReservesDesc: "Vous avez {count} réserves non résolues.",
+    licenseExpiryTitle: "Expiration de licence",
+    licenseExpiryDesc: "Votre licence expire dans {days} jours.",
+    lateTaskTitle: "Tâche en retard",
+    lateTaskDesc: "La tâche '{name}' est en retard de {days} jours.",
+    lateProjectTitle: "Projet en retard",
+    lateProjectDesc: "Le projet '{name}' est en retard.",
+    contractExpiryTitle: "Contrat bientôt expiré",
+    contractExpiryDesc: "Le contrat de '{name}' expire dans {days} jours.",
+    contractExpiredTitle: "Contrat expiré",
+    contractExpiredDesc: "Le contrat de '{name}' est expiré depuis {days} jours.",
   },
 
   en: {
@@ -902,6 +919,23 @@ const translations = {
     eraseData: "Erase Data",
     eraseAllData: "Erase All Data",
     eraseAllDataDescription: "Permanently delete all application data (CODE: 1270)",
+
+    // Notifications
+    taskProgressTitle: "Task Progress",
+    projectProgressTitle: "Project Progress",
+    progressReminderDesc: "{name}: {remaining}% remaining.",
+    unresolvedReservesTitle: "Pending Reserves",
+    unresolvedReservesDesc: "You have {count} unresolved reserves.",
+    licenseExpiryTitle: "License Expiry",
+    licenseExpiryDesc: "Your license expires in {days} days.",
+    lateTaskTitle: "Late Task",
+    lateTaskDesc: "Task '{name}' is {days} days late.",
+    lateProjectTitle: "Late Project",
+    lateProjectDesc: "Project '{name}' is late.",
+    contractExpiryTitle: "Contract Expiring Soon",
+    contractExpiryDesc: "Contract for '{name}' expires in {days} days.",
+    contractExpiredTitle: "Contract Expired",
+    contractExpiredDesc: "Contract for '{name}' expired {days} days ago.",
   },
 
   ar: {
@@ -1576,6 +1610,23 @@ const translations = {
     eraseData: "Borrar Datos",
     eraseAllData: "Borrar Todos los Datos",
     eraseAllDataDescription: "Eliminar permanentemente todos los datos de la aplicación (CÓDIGO: 1270)",
+
+    // Notifications
+    taskProgressTitle: "Progreso de la Tarea",
+    projectProgressTitle: "Progreso del Proyecto",
+    progressReminderDesc: "{name}: {remaining}% restante.",
+    unresolvedReservesTitle: "Reservas Pendientes",
+    unresolvedReservesDesc: "Tiene {count} reservas sin resolver.",
+    licenseExpiryTitle: "Expiración de Licencia",
+    licenseExpiryDesc: "Su licencia expira en {days} días.",
+    lateTaskTitle: "Tarea Atrasada",
+    lateTaskDesc: "La tarea '{name}' tiene {days} días de retraso.",
+    lateProjectTitle: "Proyecto Atrasado",
+    lateProjectDesc: "El proyecto '{name}' está atrasado.",
+    contractExpiryTitle: "Contrato por Expirar",
+    contractExpiryDesc: "El contrato de '{name}' expira en {days} días.",
+    contractExpiredTitle: "Contrato Expirado",
+    contractExpiredDesc: "El contrato de '{name}' expiró hace {days} días.",
   }
 };
 

@@ -241,7 +241,8 @@ const Admin = () => {
     };
 
     const exportCSV = () => {
-        window.open(`${API_URL}/api/admin/export/csv?password=${ADMIN_PASSWORD}`, '_blank');
+        const encodedPassword = encodeURIComponent(ADMIN_PASSWORD);
+        window.open(`${API_URL}/api/admin/export/csv?password=${encodedPassword}`, '_blank');
         toast({ title: "📥 Export en cours...", description: "Le fichier CSV va se télécharger." });
     };
 
