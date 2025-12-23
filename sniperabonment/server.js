@@ -285,10 +285,22 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
         const stats = {
             totalLicenses: await License.countDocuments(),
             activeLicenses: await License.countDocuments({ status: 'active' }),
-            totalUsers: await User.countDocuments()
+            suspendedLicenses: await License.countDocuments({ status: 'suspended' }),
+            revokedLicenses: await License.countDocuments({ status: 'revoked' }),
+            expiredLicenses: await License.countDocuments({ status: 'expired' }),
+            totalTrials: await User.countDocuments({ trialUsed: true }),
+            totalUsers: await User.countDocuments(),
+            byType: {
+                trial: await License.countDocuments({ type: 'trial' }),
+                monthly: await License.countDocuments({ type: 'monthly' }),
+                sixMonths: await License.countDocuments({ type: '6months' }),
+                yearly: await License.countDocuments({ type: 'yearly' }),
+                lifetime: await License.countDocuments({ type: 'lifetime' })
+            }
         };
         res.json(stats);
     } catch (error) {
+        console.error('Stats error:', error);
         res.status(500).json({ error: 'Error fetching stats' });
     }
 });
@@ -360,7 +372,7 @@ app.delete('/api/admin/licenses/:id', adminAuth, async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Error deleting' });
     }
-    up
+
 });
 
 app.get('/api/health', (req, res) => {

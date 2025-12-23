@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, RefreshCw, Download, AlertCircle, Search, Play, Pause, CheckCircle, XCircle, Clock, TrendingUp, Calendar, PieChart as PieChartIcon } from "lucide-react";
+import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, RefreshCw, Download, AlertCircle, Search, Play, Pause, PieChart as PieChartIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useGoogleDrive } from "@/contexts/GoogleDriveContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
@@ -422,11 +422,11 @@ const Admin = () => {
                                             <PieChart>
                                                 <Pie
                                                     data={[
-                                                        { name: 'Trial', value: stats.byType.trial },
-                                                        { name: 'Mensuel', value: stats.byType.monthly },
-                                                        { name: '6 Mois', value: stats.byType.sixMonths },
-                                                        { name: 'Annuel', value: stats.byType.yearly },
-                                                        { name: 'Lifetime', value: stats.byType.lifetime },
+                                                        { name: 'Trial', value: stats.byType?.trial || 0 },
+                                                        { name: 'Mensuel', value: stats.byType?.monthly || 0 },
+                                                        { name: '6 Mois', value: stats.byType?.sixMonths || 0 },
+                                                        { name: 'Annuel', value: stats.byType?.yearly || 0 },
+                                                        { name: 'Lifetime', value: stats.byType?.lifetime || 0 },
                                                     ]}
                                                     cx="50%"
                                                     cy="50%"
