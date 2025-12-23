@@ -9,14 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, RefreshCw, Download, AlertCircle, Search, Play, Pause, PieChart as PieChartIcon } from "lucide-react";
+import { Key, Users, Shield, BarChart3, Plus, Trash2, Ban, Copy, RefreshCw, Download, AlertCircle, Search, Play, Pause, PieChart as PieChartIcon, LogOut, Lock } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useGoogleDrive } from "@/contexts/GoogleDriveContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 
 const API_URL = import.meta.env.VITE_API_URL || "https://sniper-rptn.onrender.com";
-const ADMIN_EMAIL = "fictionsell@gmail.com";
-const ADMIN_PASSWORD = "127.0.0.1";
 
 interface License {
     id: string;
@@ -51,8 +48,10 @@ interface Stats {
 
 const Admin = () => {
     const { toast } = useToast();
-    const { userEmail, isAuthenticated, login } = useGoogleDrive();
-    const [isAuthorized, setIsAuthorized] = useState(false);
+    const [adminToken, setAdminToken] = useState<string | null>(localStorage.getItem("admin_token"));
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [loginEmail, setLoginEmail] = useState("");
+    const [loginPassword, setLoginPassword] = useState("");
 
     const [licenses, setLicenses] = useState<License[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
@@ -68,34 +67,72 @@ const Admin = () => {
     const [filterType, setFilterType] = useState<string>("all");
     const [filterStatus, setFilterStatus] = useState<string>("all");
 
-    // Check if user is authorized admin
     useEffect(() => {
-        if (isAuthenticated && userEmail === ADMIN_EMAIL) {
-            setIsAuthorized(true);
+        if (adminToken) {
             loadAllData();
-        } else {
-            setIsAuthorized(false);
         }
-    }, [isAuthenticated, userEmail]);
+    }, [adminToken]);
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoggingIn(true);
+        try {
+            const response = await fetch(`${API_URL}/api/admin/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: loginEmail, password: loginPassword })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                localStorage.setItem("admin_token", data.token);
+                setAdminToken(data.token);
+                toast({ title: "✅ Connexion réussie", description: `Bienvenue, ${data.user.name}` });
+            } else {
+                toast({
+                    title: "Erreur de connexion",
+                    description: data.error || "Identifiants invalides",
+                    variant: "destructive"
+                });
+            }
+        } catch (error) {
+            toast({ title: "Erreur", description: "Impossible de contacter le serveur", variant: "destructive" });
+        }
+        setIsLoggingIn(false);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem("admin_token");
+        setAdminToken(null);
+        setLicenses([]);
+        setStats(null);
+        toast({ title: "👋 Déconnecté" });
+    };
 
     const loadAllData = async () => {
+        if (!adminToken) return;
         setIsLoading(true);
         try {
-            const headers = { "x-admin-password": ADMIN_PASSWORD };
+            const headers = { "Authorization": `Bearer ${adminToken}` };
 
             const [licensesRes, statsRes] = await Promise.all([
                 fetch(`${API_URL}/api/admin/licenses`, { headers }),
                 fetch(`${API_URL}/api/admin/stats`, { headers })
             ]);
 
+            if (licensesRes.status === 401 || statsRes.status === 401) {
+                handleLogout();
+                toast({ title: "Session expirée", description: "Veuillez vous reconnecter", variant: "destructive" });
+                return;
+            }
+
             if (!licensesRes.ok || !statsRes.ok) {
                 const errorData = !licensesRes.ok ? await licensesRes.json() : await statsRes.json();
                 toast({
                     title: "Erreur Serveur",
-                    description: errorData.details || errorData.error || "Erreur de connexion à la base de données.",
+                    description: errorData.details || errorData.error || "Erreur de chargement des données.",
                     variant: "destructive"
                 });
-                setIsLoading(false);
                 return;
             }
 
@@ -108,22 +145,14 @@ const Admin = () => {
             setStats(statsData);
         } catch (error) {
             console.error('Load data error:', error);
-            toast({
-                title: "Erreur",
-                description: "Impossible de contacter le serveur.",
-                variant: "destructive"
-            });
+            toast({ title: "Erreur", description: "Impossible de contacter le serveur.", variant: "destructive" });
         }
         setIsLoading(false);
     };
 
     const generateLicense = async () => {
         if (!newEmail || !newType) {
-            toast({
-                title: "Erreur",
-                description: "Email et type sont requis.",
-                variant: "destructive"
-            });
+            toast({ title: "Erreur", description: "Email et type sont requis.", variant: "destructive" });
             return;
         }
 
@@ -132,22 +161,14 @@ const Admin = () => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-admin-password": ADMIN_PASSWORD
+                    "Authorization": `Bearer ${adminToken}`
                 },
-                body: JSON.stringify({
-                    email: newEmail,
-                    type: newType,
-                    notes: newNotes
-                })
+                body: JSON.stringify({ email: newEmail, type: newType, notes: newNotes })
             });
 
             const data = await response.json();
-
             if (response.ok) {
-                toast({
-                    title: "✅ Licence générée",
-                    description: `Clé créée pour ${newEmail}`
-                });
+                toast({ title: "✅ Licence générée", description: `Clé créée pour ${newEmail}` });
                 setNewEmail("");
                 setNewNotes("");
                 loadAllData();
@@ -159,12 +180,7 @@ const Admin = () => {
                 });
             }
         } catch (error) {
-            console.error('Generate license error:', error);
-            toast({
-                title: "Erreur",
-                description: "Erreur serveur.",
-                variant: "destructive"
-            });
+            toast({ title: "Erreur", description: "Erreur serveur.", variant: "destructive" });
         }
     };
 
@@ -172,9 +188,8 @@ const Admin = () => {
         try {
             const response = await fetch(`${API_URL}/api/admin/licenses/${id}/suspend`, {
                 method: "PUT",
-                headers: { "x-admin-password": ADMIN_PASSWORD }
+                headers: { "Authorization": `Bearer ${adminToken}` }
             });
-
             if (response.ok) {
                 toast({ title: "✅ Licence suspendue" });
                 loadAllData();
@@ -188,20 +203,14 @@ const Admin = () => {
         try {
             const response = await fetch(`${API_URL}/api/admin/licenses/${id}/activate`, {
                 method: "PUT",
-                headers: { "x-admin-password": ADMIN_PASSWORD }
+                headers: { "Authorization": `Bearer ${adminToken}` }
             });
-
-            const data = await response.json();
-
             if (response.ok) {
                 toast({ title: "✅ Licence activée" });
                 loadAllData();
             } else {
-                toast({
-                    title: "Erreur",
-                    description: data.error,
-                    variant: "destructive"
-                });
+                const data = await response.json();
+                toast({ title: "Erreur", description: data.error, variant: "destructive" });
             }
         } catch (error) {
             toast({ title: "Erreur", variant: "destructive" });
@@ -212,9 +221,8 @@ const Admin = () => {
         try {
             const response = await fetch(`${API_URL}/api/admin/licenses/${id}/revoke`, {
                 method: "PUT",
-                headers: { "x-admin-password": ADMIN_PASSWORD }
+                headers: { "Authorization": `Bearer ${adminToken}` }
             });
-
             if (response.ok) {
                 toast({ title: "✅ Licence révoquée" });
                 loadAllData();
@@ -228,9 +236,8 @@ const Admin = () => {
         try {
             const response = await fetch(`${API_URL}/api/admin/licenses/${id}`, {
                 method: "DELETE",
-                headers: { "x-admin-password": ADMIN_PASSWORD }
+                headers: { "Authorization": `Bearer ${adminToken}` }
             });
-
             if (response.ok) {
                 toast({ title: "✅ Licence supprimée" });
                 loadAllData();
@@ -241,8 +248,7 @@ const Admin = () => {
     };
 
     const exportCSV = () => {
-        const encodedPassword = encodeURIComponent(ADMIN_PASSWORD);
-        window.open(`${API_URL}/api/admin/export/csv?password=${encodedPassword}`, '_blank');
+        window.open(`${API_URL}/api/admin/export/csv?token=${adminToken}`, '_blank');
         toast({ title: "📥 Export en cours...", description: "Le fichier CSV va se télécharger." });
     };
 
@@ -253,16 +259,11 @@ const Admin = () => {
 
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case "active":
-                return <Badge className="bg-green-500">🟢 Active</Badge>;
-            case "suspended":
-                return <Badge className="bg-yellow-500">🟡 Suspendue</Badge>;
-            case "revoked":
-                return <Badge className="bg-red-500">🔴 Révoquée</Badge>;
-            case "expired":
-                return <Badge className="bg-gray-500">⚫ Expirée</Badge>;
-            default:
-                return <Badge>{status}</Badge>;
+            case "active": return <Badge className="bg-green-500">🟢 Active</Badge>;
+            case "suspended": return <Badge className="bg-yellow-500">🟡 Suspendue</Badge>;
+            case "revoked": return <Badge className="bg-red-500">🔴 Révoquée</Badge>;
+            case "expired": return <Badge className="bg-gray-500">⚫ Expirée</Badge>;
+            default: return <Badge>{status}</Badge>;
         }
     };
 
@@ -277,54 +278,55 @@ const Admin = () => {
         return badges[type as keyof typeof badges] || <Badge>{type}</Badge>;
     };
 
-    // Filter licenses
     const filteredLicenses = licenses.filter(license => {
         const matchesSearch = searchQuery === "" ||
             license.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
             license.key.toLowerCase().includes(searchQuery.toLowerCase());
-
         const matchesType = filterType === "all" || license.type === filterType;
         const matchesStatus = filterStatus === "all" || license.status === filterStatus;
-
         return matchesSearch && matchesType && matchesStatus;
     });
 
-    if (!isAuthorized) {
+    if (!adminToken) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 p-4">
-                <Card className="w-full max-w-md">
+                <Card className="w-full max-w-md border-gray-700 bg-gray-900/50 backdrop-blur-xl">
                     <CardHeader className="text-center">
-                        <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                            <Shield className="h-6 w-6 text-primary" />
+                        <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 border border-primary/20">
+                            <Lock className="h-8 w-8 text-primary" />
                         </div>
-                        <CardTitle>Administration</CardTitle>
-                        <CardDescription>Accès réservé à l'administrateur</CardDescription>
+                        <CardTitle className="text-2xl font-bold text-white">Administration</CardTitle>
+                        <CardDescription className="text-gray-400">Veuillez vous connecter pour continuer</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        {!isAuthenticated ? (
-                            <>
-                                <Alert>
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertTitle>Connexion requise</AlertTitle>
-                                    <AlertDescription>
-                                        Veuillez vous connecter avec le compte administrateur (fictionsell@gmail.com)
-                                    </AlertDescription>
-                                </Alert>
-                                <Button className="w-full" onClick={login}>
-                                    Se connecter avec Google
-                                </Button>
-                            </>
-                        ) : (
-                            <Alert variant="destructive">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Accès refusé</AlertTitle>
-                                <AlertDescription>
-                                    Vous n'êtes pas autorisé à accéder à cette page.
-                                    <br />
-                                    Compte actuel: {userEmail}
-                                </AlertDescription>
-                            </Alert>
-                        )}
+                    <CardContent>
+                        <form onSubmit={handleLogin} className="space-y-4">
+                            <div className="space-y-2">
+                                <Label className="text-gray-300">Email</Label>
+                                <Input
+                                    type="email"
+                                    placeholder="admin@example.com"
+                                    value={loginEmail}
+                                    onChange={(e) => setLoginEmail(e.target.value)}
+                                    className="bg-gray-800 border-gray-700 text-white"
+                                    required
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-gray-300">Mot de passe</Label>
+                                <Input
+                                    type="password"
+                                    placeholder="••••••••"
+                                    value={loginPassword}
+                                    onChange={(e) => setLoginPassword(e.target.value)}
+                                    className="bg-gray-800 border-gray-700 text-white"
+                                    required
+                                />
+                            </div>
+                            <Button type="submit" className="w-full font-bold" disabled={isLoggingIn}>
+                                {isLoggingIn ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
+                                Se connecter
+                            </Button>
+                        </form>
                     </CardContent>
                 </Card>
             </div>
@@ -343,6 +345,10 @@ const Admin = () => {
                         <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                         Actualiser
                     </Button>
+                    <Button variant="outline" onClick={handleLogout} className="flex-1 md:flex-none border-red-500/50 text-red-500 hover:bg-red-500/10">
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Déconnexion
+                    </Button>
                     <Button variant="default" onClick={exportCSV} disabled={isLoading} className="flex-1 md:flex-none">
                         <Download className="h-4 w-4 mr-2" />
                         Export CSV
@@ -357,7 +363,6 @@ const Admin = () => {
                     <TabsTrigger value="generate">➕ Générer</TabsTrigger>
                 </TabsList>
 
-                {/* Dashboard Tab */}
                 <TabsContent value="dashboard" className="space-y-4">
                     {stats && (
                         <>
@@ -369,12 +374,9 @@ const Admin = () => {
                                     </CardHeader>
                                     <CardContent className="p-4 pt-0">
                                         <div className="text-2xl font-bold">{stats.totalLicenses}</div>
-                                        <p className="text-xs text-muted-foreground">
-                                            {stats.activeLicenses} actives
-                                        </p>
+                                        <p className="text-xs text-muted-foreground">{stats.activeLicenses} actives</p>
                                     </CardContent>
                                 </Card>
-
                                 <Card>
                                     <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
                                         <CardTitle className="text-sm font-medium">Suspendues</CardTitle>
@@ -385,7 +387,6 @@ const Admin = () => {
                                         <p className="text-xs text-muted-foreground">En pause</p>
                                     </CardContent>
                                 </Card>
-
                                 <Card>
                                     <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
                                         <CardTitle className="text-sm font-medium">Révoquées</CardTitle>
@@ -396,7 +397,6 @@ const Admin = () => {
                                         <p className="text-xs text-muted-foreground">Désactivées</p>
                                     </CardContent>
                                 </Card>
-
                                 <Card>
                                     <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
                                         <CardTitle className="text-sm font-medium">Trials Utilisés</CardTitle>
@@ -428,26 +428,15 @@ const Admin = () => {
                                                         { name: 'Annuel', value: stats.byType?.yearly || 0 },
                                                         { name: 'Lifetime', value: stats.byType?.lifetime || 0 },
                                                     ]}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={60}
-                                                    outerRadius={80}
-                                                    paddingAngle={5}
-                                                    dataKey="value"
+                                                    cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
                                                 >
-                                                    <Cell fill="#3b82f6" />
-                                                    <Cell fill="#6366f1" />
-                                                    <Cell fill="#a855f7" />
-                                                    <Cell fill="#22c55e" />
-                                                    <Cell fill="#eab308" />
+                                                    <Cell fill="#3b82f6" /><Cell fill="#6366f1" /><Cell fill="#a855f7" /><Cell fill="#22c55e" /><Cell fill="#eab308" />
                                                 </Pie>
-                                                <Tooltip />
-                                                <Legend />
+                                                <Tooltip /><Legend />
                                             </PieChart>
                                         </ResponsiveContainer>
                                     </CardContent>
                                 </Card>
-
                                 <Card>
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
@@ -465,14 +454,9 @@ const Admin = () => {
                                                     { name: 'Expirées', value: stats.expiredLicenses },
                                                 ]}
                                             >
-                                                <XAxis dataKey="name" />
-                                                <YAxis />
-                                                <Tooltip />
+                                                <XAxis dataKey="name" /><YAxis /><Tooltip />
                                                 <Bar dataKey="value">
-                                                    <Cell fill="#22c55e" />
-                                                    <Cell fill="#eab308" />
-                                                    <Cell fill="#ef4444" />
-                                                    <Cell fill="#6b7280" />
+                                                    <Cell fill="#22c55e" /><Cell fill="#eab308" /><Cell fill="#ef4444" /><Cell fill="#6b7280" />
                                                 </Bar>
                                             </BarChart>
                                         </ResponsiveContainer>
@@ -483,33 +467,22 @@ const Admin = () => {
                     )}
                 </TabsContent>
 
-                {/* Licenses Tab */}
                 <TabsContent value="licenses" className="space-y-4">
-                    {/* Search and Filters */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>🔍 Recherche et Filtres</CardTitle>
-                        </CardHeader>
+                        <CardHeader><CardTitle>🔍 Recherche et Filtres</CardTitle></CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                     <Label>Recherche</Label>
                                     <div className="relative">
                                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            placeholder="Email ou clé..."
-                                            value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="pl-8"
-                                        />
+                                        <Input placeholder="Email ou clé..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-8" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Type</Label>
                                     <Select value={filterType} onValueChange={setFilterType}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">Tous</SelectItem>
                                             <SelectItem value="trial">Trial</SelectItem>
@@ -523,9 +496,7 @@ const Admin = () => {
                                 <div className="space-y-2">
                                     <Label>Statut</Label>
                                     <Select value={filterStatus} onValueChange={setFilterStatus}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">Tous</SelectItem>
                                             <SelectItem value="active">Active</SelectItem>
@@ -539,22 +510,14 @@ const Admin = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Licenses Table */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>📋 Liste des Licences ({filteredLicenses.length})</CardTitle>
-                        </CardHeader>
+                        <CardHeader><CardTitle>📋 Liste des Licences ({filteredLicenses.length})</CardTitle></CardHeader>
                         <CardContent className="p-0 md:p-6">
                             <div className="overflow-x-auto">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Email</TableHead>
-                                            <TableHead>Type</TableHead>
-                                            <TableHead>Statut</TableHead>
-                                            <TableHead>Jours Restants</TableHead>
-                                            <TableHead>Date Fin</TableHead>
-                                            <TableHead>Actions</TableHead>
+                                            <TableHead>Email</TableHead><TableHead>Type</TableHead><TableHead>Statut</TableHead><TableHead>Jours Restants</TableHead><TableHead>Date Fin</TableHead><TableHead>Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -563,109 +526,40 @@ const Admin = () => {
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
                                                         <span className="font-medium">{license.email}</span>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => copyToClipboard(license.key)}
-                                                        >
-                                                            <Copy className="h-3 w-3" />
-                                                        </Button>
+                                                        <Button variant="ghost" size="sm" onClick={() => copyToClipboard(license.key)}><Copy className="h-3 w-3" /></Button>
                                                     </div>
-                                                    {license.notes && (
-                                                        <p className="text-xs text-muted-foreground">{license.notes}</p>
-                                                    )}
+                                                    {license.notes && <p className="text-xs text-muted-foreground">{license.notes}</p>}
                                                 </TableCell>
                                                 <TableCell>{getTypeBadge(license.type)}</TableCell>
                                                 <TableCell>{getStatusBadge(license.status)}</TableCell>
                                                 <TableCell>
-                                                    {license.daysRemaining === -1 ? (
-                                                        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-                                                            ∞ Illimité
-                                                        </Badge>
-                                                    ) : (
-                                                        <span className={license.daysRemaining < 7 ? "text-red-500 font-bold" : ""}>
-                                                            {license.daysRemaining} jours
-                                                        </span>
-                                                    )}
+                                                    {license.daysRemaining === -1 ? <Badge variant="outline" className="border-yellow-500 text-yellow-500">∞ Illimité</Badge> : <span className={license.daysRemaining < 7 ? "text-red-500 font-bold" : ""}>{license.daysRemaining} jours</span>}
                                                 </TableCell>
-                                                <TableCell className="whitespace-nowrap">
-                                                    {license.endDate ? new Date(license.endDate).toLocaleDateString() : "Aucune"}
-                                                </TableCell>
+                                                <TableCell className="whitespace-nowrap">{license.endDate ? new Date(license.endDate).toLocaleDateString() : "Aucune"}</TableCell>
                                                 <TableCell>
                                                     <div className="flex gap-1">
-                                                        {license.status === "active" && (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => suspendLicense(license.id)}
-                                                            >
-                                                                <Pause className="h-3 w-3" />
-                                                            </Button>
-                                                        )}
-                                                        {license.status === "suspended" && (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => activateLicense(license.id)}
-                                                            >
-                                                                <Play className="h-3 w-3" />
-                                                            </Button>
-                                                        )}
+                                                        {license.status === "active" && <Button variant="outline" size="sm" onClick={() => suspendLicense(license.id)}><Pause className="h-3 w-3" /></Button>}
+                                                        {license.status === "suspended" && <Button variant="outline" size="sm" onClick={() => activateLicense(license.id)}><Play className="h-3 w-3" /></Button>}
                                                         {license.status !== "revoked" && (
                                                             <AlertDialog>
-                                                                <AlertDialogTrigger asChild>
-                                                                    <Button variant="outline" size="sm">
-                                                                        <Ban className="h-3 w-3" />
-                                                                    </Button>
-                                                                </AlertDialogTrigger>
+                                                                <AlertDialogTrigger asChild><Button variant="outline" size="sm"><Ban className="h-3 w-3" /></Button></AlertDialogTrigger>
                                                                 <AlertDialogContent>
-                                                                    <AlertDialogHeader>
-                                                                        <AlertDialogTitle>Révoquer la licence?</AlertDialogTitle>
-                                                                        <AlertDialogDescription>
-                                                                            Cette action désactivera définitivement la licence.
-                                                                        </AlertDialogDescription>
-                                                                    </AlertDialogHeader>
-                                                                    <AlertDialogFooter>
-                                                                        <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                                        <AlertDialogAction onClick={() => revokeLicense(license.id)}>
-                                                                            Révoquer
-                                                                        </AlertDialogAction>
-                                                                    </AlertDialogFooter>
+                                                                    <AlertDialogHeader><AlertDialogTitle>Révoquer la licence?</AlertDialogTitle><AlertDialogDescription>Cette action désactivera définitivement la licence.</AlertDialogDescription></AlertDialogHeader>
+                                                                    <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => revokeLicense(license.id)}>Révoquer</AlertDialogAction></AlertDialogFooter>
                                                                 </AlertDialogContent>
                                                             </AlertDialog>
                                                         )}
                                                         <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button variant="destructive" size="sm">
-                                                                    <Trash2 className="h-3 w-3" />
-                                                                </Button>
-                                                            </AlertDialogTrigger>
+                                                            <AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-3 w-3" /></Button></AlertDialogTrigger>
                                                             <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Supprimer?</AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        Cette action est irréversible.
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => deleteLicense(license.id)}>
-                                                                        Supprimer
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
+                                                                <AlertDialogHeader><AlertDialogTitle>Supprimer?</AlertDialogTitle><AlertDialogDescription>Cette action est irréversible.</AlertDialogDescription></AlertDialogHeader>
+                                                                <AlertDialogFooter><AlertDialogCancel>Annuler</AlertDialogCancel><AlertDialogAction onClick={() => deleteLicense(license.id)}>Supprimer</AlertDialogAction></AlertDialogFooter>
                                                             </AlertDialogContent>
                                                         </AlertDialog>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
-                                        {filteredLicenses.length === 0 && (
-                                            <TableRow>
-                                                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                                    Aucune licence trouvée
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
                                     </TableBody>
                                 </Table>
                             </div>
@@ -673,33 +567,22 @@ const Admin = () => {
                     </Card>
                 </TabsContent>
 
-                {/* Generate Tab */}
                 <TabsContent value="generate" className="space-y-4">
                     <Card>
                         <CardHeader>
                             <CardTitle>➕ Générer une Nouvelle Licence</CardTitle>
-                            <CardDescription>
-                                Créer une licence pour un email spécifique.
-                                ⚠️ Trial : 1 seul par email (30 jours)
-                            </CardDescription>
+                            <CardDescription>Créer une licence pour un email spécifique. ⚠️ Trial : 1 seul par email (30 jours)</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label>Email *</Label>
-                                    <Input
-                                        type="email"
-                                        placeholder="utilisateur@example.com"
-                                        value={newEmail}
-                                        onChange={(e) => setNewEmail(e.target.value)}
-                                    />
+                                    <Input type="email" placeholder="utilisateur@example.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Type de Licence *</Label>
                                     <Select value={newType} onValueChange={setNewType}>
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="trial">🔵 Trial (30 jours)</SelectItem>
                                             <SelectItem value="monthly">📅 Mensuel (30 jours)</SelectItem>
@@ -711,16 +594,9 @@ const Admin = () => {
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Notes (optionnel)</Label>
-                                    <Input
-                                        placeholder="Ex: Promo, Bonus, VIP..."
-                                        value={newNotes}
-                                        onChange={(e) => setNewNotes(e.target.value)}
-                                    />
+                                    <Input placeholder="Ex: Promo, Bonus, VIP..." value={newNotes} onChange={(e) => setNewNotes(e.target.value)} />
                                 </div>
-                                <Button onClick={generateLicense} className="w-full" disabled={isLoading}>
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Générer la Licence
-                                </Button>
+                                <Button onClick={generateLicense} className="w-full" disabled={isLoading}><Plus className="h-4 w-4 mr-2" />Générer la Licence</Button>
                             </div>
                         </CardContent>
                     </Card>

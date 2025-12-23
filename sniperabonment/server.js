@@ -3,6 +3,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -70,6 +71,7 @@ mongoose.connect(MONGODB_URI, {
 const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     passwordHash: String,
+    isAdmin: { type: Boolean, default: false },
     machineId: String,
     ip: String,
     licenseType: { type: String, default: 'none' },
@@ -160,25 +162,27 @@ const User = mongoose.model('User', userSchema);
 const License = mongoose.model('License', licenseSchema);
 
 // --- Admin Auth Middleware ---
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '127.0.0.1';
+const adminAuth = async (req, res, next) => {
+    try {
+        const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+        const token = (authHeader && authHeader.startsWith('Bearer ')) ? authHeader.split(' ')[1] : (req.query.token || '');
 
-const adminAuth = (req, res, next) => {
-    const rawPwd = req.headers['x-admin-password'] || req.query.password || '';
-    const pwd = rawPwd.trim();
-
-    if (pwd === ADMIN_PASSWORD.trim()) {
-        if (mongoose.connection.readyState !== 1) {
-            const state = mongoose.connection.readyState;
-            const states = { 0: 'disconnected', 1: 'connected', 2: 'connecting', 3: 'disconnecting' };
-            return res.status(503).json({
-                error: 'Database not connected',
-                details: `Current state: ${states[state] || state}. Check MONGODB_URI and IP whitelist.`
-            });
+        if (!token) {
+            return res.status(401).json({ error: 'Unauthorized: No token provided' });
         }
+
+        const decoded = jwt.verify(token, SECRET_KEY);
+        const user = await User.findById(decoded.id);
+
+        if (!user || !user.isAdmin) {
+            return res.status(403).json({ error: 'Forbidden: Admin access required' });
+        }
+
+        req.admin = user;
         next();
-    } else {
-        console.warn(`[AdminAuth] Authentication failed for ${req.path}. Expected length: ${ADMIN_PASSWORD.trim().length}, Received length: ${pwd.length}`);
-        res.status(401).json({ error: 'Unauthorized' });
+    } catch (error) {
+        console.error('[AdminAuth] Error:', error.message);
+        res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
     }
 };
 
@@ -276,6 +280,57 @@ app.post('/api/validate-license', async (req, res) => {
         res.json({ valid: true, type: license.type, expires: license.endDate, daysRemaining: license.daysRemaining });
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Admin Authentication Endpoints
+app.post('/api/admin/setup', async (req, res) => {
+    try {
+        const { email, password, secretKey } = req.body;
+
+        // Simple protection for setup
+        if (secretKey !== (process.env.SETUP_SECRET || 'sniper-setup-2024')) {
+            return res.status(403).json({ error: 'Invalid setup secret' });
+        }
+
+        const adminExists = await User.findOne({ isAdmin: true });
+        if (adminExists) {
+            return res.status(400).json({ error: 'Admin already exists' });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+        const admin = new User({
+            email: email.toLowerCase(),
+            passwordHash,
+            isAdmin: true,
+            name: 'Administrator'
+        });
+        await admin.save();
+
+        res.json({ success: true, message: 'Admin account created successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email: email.toLowerCase(), isAdmin: true });
+
+        if (!user || !user.passwordHash) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.passwordHash);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        const token = jwt.sign({ id: user._id, email: user.email }, SECRET_KEY, { expiresIn: '24h' });
+        res.json({ success: true, token, user: { email: user.email, name: user.name } });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
