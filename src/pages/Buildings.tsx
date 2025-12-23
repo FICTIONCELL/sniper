@@ -25,7 +25,7 @@ const Buildings = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [selectedBlockId, setSelectedBlockId] = useState<string>("");
 
-  const handleCreateBlock = (data: Omit<Block, 'id' | 'projectId' | 'createdAt'>) => {
+  const handleCreateBlock = (data: Omit<Block, 'id' | 'projectId' | 'createdAt'> & { apartmentCount?: number }) => {
     if (!selectedProjectId) {
       toast({
         title: t('selectProject'),
@@ -35,18 +35,41 @@ const Buildings = () => {
       return;
     }
 
+    const { apartmentCount, ...blockData } = data;
+    const blockId = generateId();
     const newBlock: Block = {
-      ...data,
-      id: generateId(),
+      ...blockData,
+      id: blockId,
       projectId: selectedProjectId,
       createdAt: new Date().toISOString()
     };
 
     setBlocks(prev => [...prev, newBlock]);
+
+    // Generate apartments if requested
+    if (apartmentCount && apartmentCount > 0) {
+      const newApartments: Apartment[] = [];
+      for (let i = 1; i <= apartmentCount; i++) {
+        newApartments.push({
+          id: generateId(),
+          blockId: blockId,
+          projectId: selectedProjectId,
+          number: `${blockData.name}-${i.toString().padStart(2, '0')}`,
+          type: 'appartement',
+          surface: 0,
+          status: 'libre',
+          createdAt: new Date().toISOString()
+        });
+      }
+      setApartments(prev => [...prev, ...newApartments]);
+    }
+
     setIsBlockDialogOpen(false);
     toast({
       title: t('blockCreated'),
-      description: t('blockCreatedDescription'),
+      description: apartmentCount
+        ? t('blockAndApartmentsCreated', { count: apartmentCount })
+        : t('blockCreatedDescription'),
     });
   };
 

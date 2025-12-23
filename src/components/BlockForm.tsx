@@ -7,7 +7,7 @@ import { Block } from "@/types";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 interface BlockFormProps {
-  onSubmit: (data: Omit<Block, 'id' | 'projectId' | 'createdAt'>) => void;
+  onSubmit: (data: Omit<Block, 'id' | 'projectId' | 'createdAt'> & { apartmentCount?: number }) => void;
   initialData?: Partial<Block>;
   isEditing?: boolean;
 }
@@ -16,7 +16,8 @@ export function BlockForm({ onSubmit, initialData, isEditing = false }: BlockFor
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
-    description: initialData?.description || ''
+    description: initialData?.description || '',
+    apartmentCount: 0
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,6 +48,20 @@ export function BlockForm({ onSubmit, initialData, isEditing = false }: BlockFor
           rows={3}
         />
       </div>
+
+      {!isEditing && (
+        <div className="space-y-2">
+          <Label htmlFor="apartmentCount">{t('apartmentCount')}</Label>
+          <Input
+            id="apartmentCount"
+            type="number"
+            min="0"
+            value={formData.apartmentCount}
+            onChange={(e) => setFormData(prev => ({ ...prev, apartmentCount: parseInt(e.target.value) || 0 }))}
+            placeholder={t('apartmentCountPlaceholder')}
+          />
+        </div>
+      )}
 
       <Button type="submit" className="w-full">
         {isEditing ? t('updateBlock') : t('createBlockButton')}

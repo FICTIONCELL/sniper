@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useTasks, useProjects, generateId } from "@/hooks/useLocalStorage";
+import { useTasks, useProjects, useContractors, useCategories, generateId } from "@/hooks/useLocalStorage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,8 @@ const PlanningNew = () => {
   const { t } = useTranslation();
   const [tasks, setTasks] = useTasks();
   const [projects] = useProjects();
+  const [contractors] = useContractors();
+  const [categories] = useCategories();
 
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [timeScale, setTimeScale] = useState<TimeScale>('month');
@@ -39,6 +41,7 @@ const PlanningNew = () => {
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<'all' | 'task' | 'contractor'>('all');
 
   const handleCreateTask = (data: Omit<Task, 'id' | 'createdAt'>) => {
     const newTask: Task = {
@@ -91,19 +94,46 @@ const PlanningNew = () => {
     return endDate < today && task.status !== 'termine';
   };
 
-  const filteredTasks = useMemo(() => {
-    let filtered = tasks;
+  const combinedItems = useMemo(() => {
+    // Map contractors to a task-like structure
+    const contractorItems = contractors.map(contractor => {
+      const categoryName = categories.find(c => c.id === contractor.categoryIds[0])?.name || t('noCategory');
+      return {
+        id: contractor.id,
+        title: `${categoryName}_${contractor.specialty}`,
+        description: contractor.name,
+        projectId: contractor.projectId,
+        assignedTo: contractor.name,
+        startDate: contractor.contractStart,
+        endDate: contractor.contractEnd,
+        status: contractor.status === 'actif' ? 'en_cours' : 'en_attente',
+        priority: 'normal',
+        progress: contractor.status === 'actif' ? 100 : 0,
+        type: 'contractor' as const,
+        originalStatus: contractor.status
+      };
+    });
+
+    const taskItems = tasks.map(task => ({
+      ...task,
+      type: 'task' as const
+    }));
+
+    let combined = [...taskItems, ...contractorItems];
 
     if (priorityFilter !== 'all') {
-      filtered = filtered.filter(task => task.priority === priorityFilter);
+      combined = combined.filter(item => item.priority === priorityFilter);
     }
 
     if (projectFilter !== 'all') {
-      filtered = filtered.filter(task => task.projectId === projectFilter);
+      combined = combined.filter(item => item.projectId === projectFilter);
     }
 
-    return filtered.sort((a, b) => {
-      // Sort by priority first, then by start date
+    if (typeFilter !== 'all') {
+      combined = combined.filter(item => item.type === typeFilter);
+    }
+
+    return combined.sort((a, b) => {
       const priorityOrder = { urgent: 3, normal: 2, faible: 1 };
       const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
       const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
@@ -114,41 +144,43 @@ const PlanningNew = () => {
 
       return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
     });
-  }, [tasks, priorityFilter, projectFilter]);
+  }, [tasks, contractors, categories, priorityFilter, projectFilter, t]);
 
   const moveTask = (taskId: string, direction: 'up' | 'down') => {
-    const currentIndex = filteredTasks.findIndex(task => task.id === taskId);
+    const currentIndex = combinedItems.findIndex(item => item.id === taskId);
     if (currentIndex === -1) return;
 
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= filteredTasks.length) return;
+    if (newIndex < 0 || newIndex >= combinedItems.length) return;
 
-    const updatedTasks = [...tasks];
-    const taskToMove = updatedTasks.find(task => task.id === taskId);
-    const targetTask = filteredTasks[newIndex];
+    const currentItem = combinedItems[currentIndex];
+    const targetItem = combinedItems[newIndex];
 
-    if (taskToMove && targetTask) {
-      // Swap priorities to maintain order
-      const tempPriority = taskToMove.priority;
-      taskToMove.priority = targetTask.priority;
-      const targetInUpdated = updatedTasks.find(task => task.id === targetTask.id);
-      if (targetInUpdated) {
-        targetInUpdated.priority = tempPriority;
+    if (currentItem.type === 'task' && targetItem.type === 'task') {
+      const updatedTasks = [...tasks];
+      const taskToMove = updatedTasks.find(t => t.id === currentItem.id);
+      const taskTarget = updatedTasks.find(t => t.id === targetItem.id);
+
+      if (taskToMove && taskTarget) {
+        const tempPriority = taskToMove.priority;
+        taskToMove.priority = taskTarget.priority;
+        taskTarget.priority = tempPriority;
+        setTasks(updatedTasks);
       }
     }
 
-    setTasks(updatedTasks);
     toast({
-      title: t('taskMoved'),
-      description: t('taskMovedDirection', { direction: direction === 'up' ? t('up') : t('down') }),
+      title: t('itemMoved'),
+      description: t('itemMovedDirection', { direction: direction === 'up' ? t('up') : t('down') }),
     });
   };
 
   const handleExport = () => {
     const csvData = [
-      [t('title'), t('description'), t('project'), t('assignedTo'), t('startDate'), t('endDate'), t('status'), t('priority'), t('progress')],
-      ...filteredTasks.map(task => [
+      [t('title'), t('type'), t('description'), t('project'), t('assignedTo'), t('startDate'), t('endDate'), t('status'), t('priority'), t('progress')],
+      ...combinedItems.map(task => [
         task.title,
+        task.type === 'task' ? t('typeTask') : t('typeContractor'),
         task.description,
         getProjectName(task.projectId),
         task.assignedTo,
@@ -202,6 +234,7 @@ const PlanningNew = () => {
                 <thead>
                   <tr>
                     <th>${t('title')}</th>
+                    <th>${t('type')}</th>
                     <th>${t('project')}</th>
                     <th>${t('assignedTo')}</th>
                     <th>${t('startDate')}</th>
@@ -212,9 +245,10 @@ const PlanningNew = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  ${filteredTasks.map(task => `
+                  ${combinedItems.map(task => `
                     <tr class="${task.priority}">
                       <td>${task.title}</td>
+                      <td>${task.type === 'task' ? t('typeTask') : t('typeContractor')}</td>
                       <td>${getProjectName(task.projectId)}</td>
                       <td>${task.assignedTo}</td>
                       <td>${new Date(task.startDate).toLocaleDateString()}</td>
@@ -231,7 +265,7 @@ const PlanningNew = () => {
         `);
       } else {
         // Print Gantt view with visual bars
-        const allDates = filteredTasks.flatMap(task => [new Date(task.startDate), new Date(task.endDate)]);
+        const allDates = combinedItems.flatMap(task => [new Date(task.startDate), new Date(task.endDate)]);
         const minDate = allDates.length > 0 ? new Date(Math.min(...allDates.map(d => d.getTime()))) : new Date();
         const maxDate = allDates.length > 0 ? new Date(Math.max(...allDates.map(d => d.getTime()))) : new Date();
 
@@ -304,7 +338,7 @@ const PlanningNew = () => {
                   </div>
                 </div>
                 
-                ${filteredTasks.map(task => {
+                ${combinedItems.map(task => {
           const pos = getBarPosition(task);
           const color = getBarColor(task);
           return `
@@ -312,7 +346,7 @@ const PlanningNew = () => {
                       <div class="task-info">
                         <div class="task-name">${task.title}</div>
                         <div class="task-project">${getProjectName(task.projectId)}</div>
-                        <div class="task-meta">${task.priority} | ${getStatusLabel(task.status)}</div>
+                        <div class="task-meta">${task.type === 'task' ? t('typeTask') : t('typeContractor')} | ${task.priority} | ${getStatusLabel(task.status)}</div>
                       </div>
                       <div class="timeline-area">
                         <div class="task-bar" style="left: ${pos.left}%; width: ${Math.max(pos.width, 2)}%; background-color: ${color};">
@@ -359,6 +393,7 @@ const PlanningNew = () => {
               <tr className="border-b">
                 <th className="text-left p-3 font-medium">{t('actions')}</th>
                 <th className="text-left p-3 font-medium">{t('title')}</th>
+                <th className="text-left p-3 font-medium">{t('type')}</th>
                 <th className="text-left p-3 font-medium">{t('project')}</th>
                 <th className="text-left p-3 font-medium">{t('assignedTo')}</th>
                 <th className="text-left p-3 font-medium">{t('period')}</th>
@@ -368,7 +403,7 @@ const PlanningNew = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredTasks.map((task, index) => (
+              {combinedItems.map((task, index) => (
                 <tr key={task.id} className="border-b hover:bg-muted/50 transition-colors">
                   <td className="p-3">
                     <div className="flex gap-1">
@@ -383,7 +418,7 @@ const PlanningNew = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        disabled={index === filteredTasks.length - 1}
+                        disabled={index === combinedItems.length - 1}
                         onClick={() => moveTask(task.id, 'down')}
                       >
                         <ChevronDown className="h-4 w-4" />
@@ -397,6 +432,11 @@ const PlanningNew = () => {
                         <AlertTriangle className="h-4 w-4 text-destructive" />
                       )}
                     </div>
+                  </td>
+                  <td className="p-3">
+                    <Badge variant="outline" className={task.type === 'task' ? 'bg-blue-500/10 text-blue-700' : 'bg-purple-500/10 text-purple-700'}>
+                      {task.type === 'task' ? t('typeTask') : t('typeContractor')}
+                    </Badge>
                   </td>
                   <td className="p-3 text-sm text-muted-foreground">
                     {getProjectName(task.projectId)}
@@ -433,7 +473,7 @@ const PlanningNew = () => {
             </tbody>
           </table>
 
-          {filteredTasks.length === 0 && (
+          {combinedItems.length === 0 && (
             <div className="text-center py-12">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">{t('noTasksFound')}</h3>
@@ -447,7 +487,7 @@ const PlanningNew = () => {
 
   const renderGanttView = () => {
     // Calculate time range
-    const allDates = filteredTasks.flatMap(task => [new Date(task.startDate), new Date(task.endDate)]);
+    const allDates = combinedItems.flatMap(task => [new Date(task.startDate), new Date(task.endDate)]);
     const minDate = allDates.length > 0 ? new Date(Math.min(...allDates.map(d => d.getTime()))) : new Date();
     const maxDate = allDates.length > 0 ? new Date(Math.max(...allDates.map(d => d.getTime()))) : new Date();
 
@@ -569,7 +609,7 @@ const PlanningNew = () => {
 
                 {/* Tasks Rows */}
                 <div className="space-y-0">
-                  {filteredTasks.map((task, index) => {
+                  {combinedItems.map((task, index) => {
                     const barStyle = getTaskBarStyle(task);
                     const barColor = getTaskBarColor(task);
 
@@ -591,7 +631,7 @@ const PlanningNew = () => {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                disabled={index === filteredTasks.length - 1}
+                                disabled={index === combinedItems.length - 1}
                                 onClick={() => moveTask(task.id, 'down')}
                                 className="h-6 w-6 p-0"
                               >
@@ -607,6 +647,9 @@ const PlanningNew = () => {
                             {getProjectName(task.projectId)}
                           </div>
                           <div className="flex gap-1 mt-1">
+                            <Badge variant="outline" className={task.type === 'task' ? 'bg-blue-500/10 text-blue-700' : 'bg-purple-500/10 text-purple-700'}>
+                              {task.type === 'task' ? t('typeTask') : t('typeContractor')}
+                            </Badge>
                             <Badge className={getPriorityColor(task.priority)} variant="outline">
                               {task.priority}
                             </Badge>
@@ -646,7 +689,7 @@ const PlanningNew = () => {
                   })}
                 </div>
 
-                {filteredTasks.length === 0 && (
+                {combinedItems.length === 0 && (
                   <div className="text-center py-12">
                     <GanttChartSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">{t('noTasksDisplay')}</h3>
@@ -798,6 +841,16 @@ const PlanningNew = () => {
                 <SelectItem value="urgent">{t('urgent')}</SelectItem>
                 <SelectItem value="normal">{t('normal')}</SelectItem>
                 <SelectItem value="faible">{t('low')}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={(value: any) => setTypeFilter(value)}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('allTypes')}</SelectItem>
+                <SelectItem value="task">{t('tasks')}</SelectItem>
+                <SelectItem value="contractor">{t('contractors')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
