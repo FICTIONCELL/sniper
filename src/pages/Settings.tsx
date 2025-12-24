@@ -35,7 +35,6 @@ interface UserProfile {
   name: string;
   email: string;
   phone: string;
-  avatar: string;
   companyLogo: string;
   showLogoInPV: boolean;
 }
@@ -53,7 +52,6 @@ const Settings = () => {
     name: '',
     email: '',
     phone: '',
-    avatar: '',
     companyLogo: '',
     showLogoInPV: false
   });
@@ -279,14 +277,13 @@ const Settings = () => {
     });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'companyLogo') => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       try {
-        // Compress image: max width 500px for avatar, 800px for logo, 70% quality
-        const maxWidth = field === 'avatar' ? 500 : 800;
-        const compressedImage = await compressImage(file, maxWidth, 0.7);
-        setUserProfile(prev => ({ ...prev, [field]: compressedImage }));
+        // Compress image: max width 800px for logo, 70% quality
+        const compressedImage = await compressImage(file, 800, 0.7);
+        setUserProfile(prev => ({ ...prev, companyLogo: compressedImage }));
         toast({
           title: t('imageUploaded'),
           description: t('imageUploadedDesc'),
@@ -720,29 +717,7 @@ const Settings = () => {
                   placeholder="+1234567890"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>{t('logo') || 'Logo'}</Label>
-                <div className="flex items-center gap-4">
-                  {userProfile.avatar && (
-                    <div className="relative">
-                      <img src={userProfile.avatar} alt="Logo" className="w-16 h-16 rounded-full object-cover border" />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full shadow-md"
-                        onClick={() => setUserProfile({ ...userProfile, avatar: '' })}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(e, 'avatar')}
-                  />
-                </div>
-              </div>
+
             </CardContent>
           </Card>
 
@@ -773,7 +748,7 @@ const Settings = () => {
                   <Input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => handleImageUpload(e, 'companyLogo')}
+                    onChange={handleImageUpload}
                   />
                 </div>
               </div>
@@ -830,14 +805,7 @@ const Settings = () => {
                         const machineId = currentDevice?.deviceId || localStorage.getItem('sniper_device_id') || 'unknown';
 
                         // Compress images before saving if they exist
-                        let compressedAvatar = userProfile.avatar;
-                        if (compressedAvatar && compressedAvatar.length > 100000) { // If > 100KB
-                          try {
-                            compressedAvatar = await compressBase64(compressedAvatar, 400, 0.6);
-                          } catch (e) {
-                            console.warn("Failed to compress avatar", e);
-                          }
-                        }
+
 
                         let compressedLogo = userProfile.companyLogo;
                         if (compressedLogo && compressedLogo.length > 100000) { // If > 100KB
@@ -864,7 +832,7 @@ const Settings = () => {
                           name: userProfile.name,
                           email: userEmailForProfile,
                           phone: userProfile.phone,
-                          avatar: compressedAvatar,
+
                           companyLogo: compressedLogo,
                           showLogoInPV: userProfile.showLogoInPV,
                           subscriptionStatus: subscription.status,
@@ -890,10 +858,9 @@ const Settings = () => {
                           devices
                         };
 
-                        if (compressedAvatar !== userProfile.avatar || compressedLogo !== userProfile.companyLogo) {
+                        if (compressedLogo !== userProfile.companyLogo) {
                           setUserProfile(prev => ({
                             ...prev,
-                            avatar: compressedAvatar,
                             companyLogo: compressedLogo
                           }));
                         }

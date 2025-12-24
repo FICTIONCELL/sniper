@@ -78,8 +78,9 @@ export const generatePVPDF = (data: PVData, language = 'fr'): jsPDF => {
   if (data.companyLogo) {
     try {
       const logoWidth = 40;
-      const logoHeight = 20; // Aspect ratio might need adjustment or auto-calculation
-      doc.addImage(data.companyLogo, 'PNG', 20, 10, logoWidth, logoHeight, undefined, 'FAST');
+      const logoHeight = 20;
+      const logoX = pageWidth - logoWidth - 20; // Top Right: Page Width - Logo Width - Margin
+      doc.addImage(data.companyLogo, 'PNG', logoX, 10, logoWidth, logoHeight, undefined, 'FAST');
       // Adjust yPosition if logo is present, but title is centered so maybe just ensure no overlap
     } catch (error) {
       console.error('Error adding company logo to PDF:', error);

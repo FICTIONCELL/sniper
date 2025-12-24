@@ -7,7 +7,7 @@ export interface UserProfileData {
     name: string;
     email: string;
     phone: string;
-    avatar: string;
+    avatar?: string;
     companyLogo: string;
     showLogoInPV: boolean;
 

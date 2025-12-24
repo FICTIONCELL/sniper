@@ -120,7 +120,7 @@ export const QRCodeGenerator = ({ data, size = 200, className = "", projectName,
 
   const getCompanyLogo = () => {
     try {
-      const userProfileStr = localStorage.getItem('user_profile');
+      const userProfileStr = localStorage.getItem('sniper_user_profile');
       if (userProfileStr) {
         const userProfile = JSON.parse(userProfileStr);
         if (userProfile.showLogoInPV && userProfile.companyLogo) {
