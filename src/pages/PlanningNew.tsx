@@ -577,13 +577,13 @@ const PlanningNew = () => {
             {t('ganttView')} ({timeScale === 'day' ? t('perDay') : timeScale === 'month' ? t('perMonth') : t('perYear')})
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {/* Scrollable Container with custom scrollbar */}
           <div className="relative">
             {/* Fixed task column overlay hint */}
             <div className="absolute left-60 top-0 bottom-0 w-4 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
 
-            <div className="overflow-auto scrollbar-thin scrollbar-thumb-primary scrollbar-track-muted" style={{ maxHeight: '75vh', height: '75vh' }}>
+            <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)', height: '600px' }}>
               <div style={{ minWidth: `${Math.max(1200, timeUnits.length * (timeScale === 'day' ? 60 : timeScale === 'month' ? 100 : 150))}px` }}>
                 {/* Timeline Header */}
                 <div className="flex border-b bg-muted sticky top-0 z-30">

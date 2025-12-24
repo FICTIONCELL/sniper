@@ -106,8 +106,6 @@ const licenseSchema = new mongoose.Schema({
     endDate: Date,
     daysRemaining: Number,
     notes: String,
-    token: String, // legacy field
-    payload: Object, // legacy field
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
