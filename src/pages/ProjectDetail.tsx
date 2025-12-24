@@ -11,10 +11,14 @@ import { BlockForm } from "@/components/BlockForm";
 import { ApartmentForm } from "@/components/ApartmentForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
+  const { canAddBlock, isTrial, limits, isActive } = useSubscription();
   const [projects] = useProjects();
   const [blocks, setBlocks] = useBlocks();
   const [apartments, setApartments] = useApartments();
@@ -25,6 +29,8 @@ const ProjectDetail = () => {
   const project = projects.find(p => p.id === id);
   const projectBlocks = blocks.filter(b => b.projectId === id);
   const projectApartments = apartments.filter(a => a.projectId === id);
+
+  const canAdd = canAddBlock(projectBlocks.length);
 
   if (!project) {
     return (
@@ -147,11 +153,19 @@ const ProjectDetail = () => {
         </TabsList>
 
         <TabsContent value="blocks" className="space-y-4">
+          {isTrial && (
+            <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950 mb-4">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                {t('trialLimitInfo') || `Mode essai: ${projectBlocks.length}/${limits.maxBlocks} bloc(s) utilisé(s)`}
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">{t('projectBlocks')}</h2>
             <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button disabled={!isActive || !canAdd}>
                   <Plus className="mr-2 h-4 w-4" />
                   {t('addBlock')}
                 </Button>

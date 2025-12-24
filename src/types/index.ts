@@ -94,5 +94,8 @@ export interface Reception {
   delayDays: number;
   pvGenerated: boolean;
   pvContent: string;
+  attachmentType?: 'auto' | 'file' | 'text';
+  attachmentUrl?: string;
+  attachmentName?: string;
   createdAt: string;
 }

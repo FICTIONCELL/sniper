@@ -721,10 +721,20 @@ const Settings = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>{t('avatar')}</Label>
+                <Label>{t('logo') || 'Logo'}</Label>
                 <div className="flex items-center gap-4">
                   {userProfile.avatar && (
-                    <img src={userProfile.avatar} alt="Avatar" className="w-16 h-16 rounded-full object-cover" />
+                    <div className="relative">
+                      <img src={userProfile.avatar} alt="Logo" className="w-16 h-16 rounded-full object-cover border" />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full shadow-md"
+                        onClick={() => setUserProfile({ ...userProfile, avatar: '' })}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   )}
                   <Input
                     type="file"
@@ -1059,7 +1069,14 @@ const Settings = () => {
                           className="bg-white dark:bg-background"
                           disabled={isAuthenticated && !!userEmail}
                         />
-                        <Button onClick={() => startTrial(trialEmail)} disabled={isLoading || !trialEmail}>
+                        <Button onClick={async () => {
+                          const result = await startTrial(trialEmail);
+                          toast({
+                            title: result.success ? "Succès" : "Erreur",
+                            description: result.message,
+                            variant: result.success ? "default" : "destructive"
+                          });
+                        }} disabled={isLoading || !trialEmail}>
                           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('startTrial') || 'Commencer'}
                         </Button>
                       </div>
@@ -1089,7 +1106,14 @@ const Settings = () => {
                         value={activationEmail}
                         onChange={(e) => setActivationEmail(e.target.value)}
                       />
-                      <Button onClick={() => activateSubscription(licenseKey, activationEmail)} disabled={isLoading || !licenseKey || !activationEmail}>
+                      <Button onClick={async () => {
+                        const result = await activateSubscription(licenseKey, activationEmail);
+                        toast({
+                          title: result.success ? "Succès" : "Erreur",
+                          description: result.message,
+                          variant: result.success ? "default" : "destructive"
+                        });
+                      }} disabled={isLoading || !licenseKey || !activationEmail}>
                         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('activate') || 'Activer'}
                       </Button>
                     </div>
@@ -1099,7 +1123,7 @@ const Settings = () => {
 
               {isActive && (
                 <div className="pt-4 border-t">
-                  <Button variant="outline" className="w-full text-destructive hover:text-destructive" onClick={cancelSubscription}>
+                  <Button variant="outline" className="w-full text-destructive hover:text-destructive" onClick={() => cancelSubscription()}>
                     {t('cancelSubscription') || 'Annuler l\'abonnement'}
                   </Button>
                 </div>
@@ -1107,9 +1131,10 @@ const Settings = () => {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
-    </div>
+      </Tabs >
+    </div >
   );
 };
 
 export default Settings;
+

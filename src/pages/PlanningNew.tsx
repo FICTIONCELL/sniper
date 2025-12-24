@@ -586,8 +586,8 @@ const PlanningNew = () => {
             <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-primary scrollbar-track-muted" style={{ maxHeight: '70vh' }}>
               <div style={{ minWidth: `${Math.max(1200, timeUnits.length * (timeScale === 'day' ? 60 : timeScale === 'month' ? 100 : 150))}px` }}>
                 {/* Timeline Header */}
-                <div className="flex border-b bg-muted/20">
-                  <div className="w-60 p-3 font-medium border-r bg-background">
+                <div className="flex border-b bg-muted sticky top-0 z-30">
+                  <div className="w-60 p-3 font-medium border-r bg-background sticky left-0 z-40">
                     {t('tasks')}
                   </div>
                   <div className="flex-1 relative">
@@ -616,7 +616,7 @@ const PlanningNew = () => {
                     return (
                       <div key={task.id} className="flex border-b hover:bg-muted/30 transition-colors">
                         {/* Task Info Column */}
-                        <div className="w-60 p-3 border-r bg-background">
+                        <div className="w-60 p-3 border-r bg-background sticky left-0 z-20">
                           <div className="flex items-center gap-2 mb-1">
                             <div className="flex gap-1">
                               <Button

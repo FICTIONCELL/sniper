@@ -8,6 +8,7 @@ import { Layout } from "./components/Layout";
 import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { GoogleDriveProvider } from "@/contexts/GoogleDriveContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ReminderEngine } from "@/components/ReminderEngine";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
@@ -71,65 +72,67 @@ const App = () => {
           <Sonner />
           <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
             <GoogleDriveProvider>
-              <NotificationProvider>
-                <ReminderEngine />
-                <Routes>
-                  <Route path="/login" element={<Login onLogin={handleLogin} />} />
-                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                  <Route path="/terms-of-service" element={<TermsOfService />} />
+              <SubscriptionProvider>
+                <NotificationProvider>
+                  <ReminderEngine />
+                  <Routes>
+                    <Route path="/login" element={<Login onLogin={handleLogin} />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                    <Route path="/terms-of-service" element={<TermsOfService />} />
 
-                  {/* Protected Admin Route */}
-                  <Route
-                    path="/admin"
-                    element={
+                    {/* Protected Admin Route */}
+                    <Route
+                      path="/admin"
+                      element={
+                        <ProtectedRoute>
+                          <Admin />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Protected Compact Route */}
+                    <Route
+                      path="/compact"
+                      element={
+                        <ProtectedRoute>
+                          <MotionWrapper>
+                            <CompactDashboard />
+                          </MotionWrapper>
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    {/* Protected Main Routes */}
+                    <Route path="/*" element={
                       <ProtectedRoute>
-                        <Admin />
+                        <Layout>
+                          <AnimatePresence mode="wait">
+                            <Routes location={location} key={location.pathname}>
+                              <Route path="/" element={<MotionWrapper><Dashboard /></MotionWrapper>} />
+                              <Route path="/projects" element={<MotionWrapper><Projects /></MotionWrapper>} />
+                              <Route path="/projects/:id" element={<MotionWrapper><ProjectDetail /></MotionWrapper>} />
+                              <Route path="/reserves" element={<MotionWrapper><Reserves /></MotionWrapper>} />
+                              <Route path="/reserves/compact" element={<MotionWrapper><CompactReserves /></MotionWrapper>} />
+                              <Route path="/contractors" element={<MotionWrapper><Contractors /></MotionWrapper>} />
+                              <Route path="/resolve-reserves" element={<MotionWrapper><ResolveReserves /></MotionWrapper>} />
+                              <Route path="/receptions" element={<MotionWrapper><Receptions /></MotionWrapper>} />
+                              <Route path="/tasks" element={<MotionWrapper><Tasks /></MotionWrapper>} />
+                              <Route path="/planning" element={<MotionWrapper><Planning /></MotionWrapper>} />
+                              <Route path="/categories" element={<MotionWrapper><Categories /></MotionWrapper>} />
+                              <Route path="/buildings" element={<MotionWrapper><Buildings /></MotionWrapper>} />
+                              <Route path="/settings" element={<MotionWrapper><Settings /></MotionWrapper>} />
+                              <Route path="/documents" element={<MotionWrapper><Documents /></MotionWrapper>} />
+                              <Route path="/test-pv" element={<MotionWrapper><TestPV /></MotionWrapper>} />
+                              <Route path="/admin" element={<MotionWrapper><Admin /></MotionWrapper>} />
+                              <Route path="*" element={<MotionWrapper><NotFound /></MotionWrapper>} />
+                            </Routes>
+                          </AnimatePresence>
+                        </Layout>
                       </ProtectedRoute>
-                    }
-                  />
-
-                  {/* Protected Compact Route */}
-                  <Route
-                    path="/compact"
-                    element={
-                      <ProtectedRoute>
-                        <MotionWrapper>
-                          <CompactDashboard />
-                        </MotionWrapper>
-                      </ProtectedRoute>
-                    }
-                  />
-
-                  {/* Protected Main Routes */}
-                  <Route path="/*" element={
-                    <ProtectedRoute>
-                      <Layout>
-                        <AnimatePresence mode="wait">
-                          <Routes location={location} key={location.pathname}>
-                            <Route path="/" element={<MotionWrapper><Dashboard /></MotionWrapper>} />
-                            <Route path="/projects" element={<MotionWrapper><Projects /></MotionWrapper>} />
-                            <Route path="/projects/:id" element={<MotionWrapper><ProjectDetail /></MotionWrapper>} />
-                            <Route path="/reserves" element={<MotionWrapper><Reserves /></MotionWrapper>} />
-                            <Route path="/reserves/compact" element={<MotionWrapper><CompactReserves /></MotionWrapper>} />
-                            <Route path="/contractors" element={<MotionWrapper><Contractors /></MotionWrapper>} />
-                            <Route path="/resolve-reserves" element={<MotionWrapper><ResolveReserves /></MotionWrapper>} />
-                            <Route path="/receptions" element={<MotionWrapper><Receptions /></MotionWrapper>} />
-                            <Route path="/tasks" element={<MotionWrapper><Tasks /></MotionWrapper>} />
-                            <Route path="/planning" element={<MotionWrapper><Planning /></MotionWrapper>} />
-                            <Route path="/categories" element={<MotionWrapper><Categories /></MotionWrapper>} />
-                            <Route path="/buildings" element={<MotionWrapper><Buildings /></MotionWrapper>} />
-                            <Route path="/settings" element={<MotionWrapper><Settings /></MotionWrapper>} />
-                            <Route path="/documents" element={<MotionWrapper><Documents /></MotionWrapper>} />
-                            <Route path="/test-pv" element={<MotionWrapper><TestPV /></MotionWrapper>} />
-                            <Route path="/admin" element={<MotionWrapper><Admin /></MotionWrapper>} />
-                            <Route path="*" element={<MotionWrapper><NotFound /></MotionWrapper>} />
-                          </Routes>
-                        </AnimatePresence>
-                      </Layout>
-                    </ProtectedRoute>
-                  } />
-                </Routes>
-              </NotificationProvider>
+                    } />
+                  </Routes>
+                </NotificationProvider>
+              </SubscriptionProvider>
             </GoogleDriveProvider>
           </ThemeProvider>
         </TooltipProvider>

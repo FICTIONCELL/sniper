@@ -199,6 +199,7 @@ const translations = {
     lightTheme: "Clair",
     darkTheme: "Sombre",
     systemTheme: "Système",
+    logo: "Logo",
 
     // Messages
     noProjects: "Aucun projet trouvé",
@@ -619,6 +620,7 @@ const translations = {
     lightTheme: "Light",
     darkTheme: "Dark",
     systemTheme: "System",
+    logo: "Logo",
 
     // Messages
     noProjects: "No projects found",
@@ -1090,6 +1092,7 @@ const translations = {
     lightTheme: "فاتح",
     darkTheme: "داكن",
     systemTheme: "النظام",
+    logo: "شعار",
 
     // Messages
     noProjects: "لا توجد مشاريع",
@@ -1434,6 +1437,7 @@ const translations = {
     lightTheme: "Claro",
     darkTheme: "Oscuro",
     systemTheme: "Sistema",
+    logo: "Logo",
 
     // Messages
     noProjects: "No se encontraron proyectos",

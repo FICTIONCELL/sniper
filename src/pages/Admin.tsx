@@ -118,10 +118,10 @@ const Admin = () => {
     };
 
     const generateLicense = async () => {
-        if (!newEmail || !newType) {
+        if (!newType) {
             toast({
                 title: "Erreur",
-                description: "Email et type sont requis.",
+                description: "Le type de licence est requis.",
                 variant: "destructive"
             });
             return;
@@ -146,7 +146,7 @@ const Admin = () => {
             if (response.ok) {
                 toast({
                     title: "✅ Licence générée",
-                    description: `Clé créée pour ${newEmail}`
+                    description: `Clé créée pour ${newEmail || "Utilisateur non défini (Floating)"}`
                 });
                 setNewEmail("");
                 setNewNotes("");
@@ -562,7 +562,11 @@ const Admin = () => {
                                             <TableRow key={license.id}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="font-medium">{license.email}</span>
+                                                        {license.email === 'Unbound (Floating)' ? (
+                                                            <Badge variant="secondary" className="bg-gray-200 text-gray-700">Floating Key</Badge>
+                                                        ) : (
+                                                            <span className="font-medium">{license.email}</span>
+                                                        )}
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
@@ -686,10 +690,10 @@ const Admin = () => {
                         <CardContent>
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label>Email *</Label>
+                                    <Label>Email (Optionnel)</Label>
                                     <Input
                                         type="email"
-                                        placeholder="utilisateur@example.com"
+                                        placeholder="Laisser vide pour une clé 'Floating' (liée au 1er utilisateur)"
                                         value={newEmail}
                                         onChange={(e) => setNewEmail(e.target.value)}
                                     />

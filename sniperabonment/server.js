@@ -91,7 +91,7 @@ const userSchema = new mongoose.Schema({
 
 const licenseSchema = new mongoose.Schema({
     key: { type: String, required: true, unique: true },
-    email: { type: String, required: true, index: true },
+    email: { type: String, index: true }, // Not required for floating keys
     type: {
         type: String,
         enum: ['trial', 'monthly', '6months', 'yearly', 'lifetime'],
@@ -111,6 +111,8 @@ const licenseSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
+
+// ... (virtuals and pre-save remain same) ...
 
 licenseSchema.virtual('calculatedDaysRemaining').get(function () {
     if (this.type === 'lifetime') return -1;
@@ -159,7 +161,8 @@ licenseSchema.pre('save', function () {
 const User = mongoose.model('User', userSchema);
 const License = mongoose.model('License', licenseSchema);
 
-// --- Admin Auth Middleware ---
+// ... (Admin Auth Middleware remains same) ...
+
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '127.0.0.1';
 
 const adminAuth = (req, res, next) => {
@@ -182,7 +185,7 @@ const adminAuth = (req, res, next) => {
     }
 };
 
-// --- API Endpoints ---
+// ... (API Endpoints) ...
 
 app.post('/api/user-profile/save', async (req, res) => {
     try {
@@ -262,19 +265,40 @@ app.post('/api/trial/start', async (req, res) => {
 app.post('/api/validate-license', async (req, res) => {
     try {
         const { token, email } = req.body;
-        const license = await License.findOne({ key: token, email: email.toLowerCase() });
-        if (!license) return res.status(404).json({ valid: false, error: 'Invalid license' });
+        if (!token || !email) return res.status(400).json({ valid: false, error: 'Token and email required' });
 
-        if (license.status !== 'active') return res.json({ valid: false, status: license.status });
+        const normalizedEmail = email.toLowerCase();
+        const license = await License.findOne({ key: token });
+
+        if (!license) return res.status(404).json({ valid: false, error: 'Invalid license key' });
+
+        // 1. Check Binding
+        if (license.email) {
+            // License is already bound
+            if (license.email.toLowerCase() !== normalizedEmail) {
+                return res.status(403).json({
+                    valid: false,
+                    error: 'Cette clé de licence est déjà utilisée par un autre utilisateur.'
+                });
+            }
+        } else {
+            // License is floating (not bound yet) -> Bind it now!
+            license.email = normalizedEmail;
+            await license.save();
+            console.log(`License ${token} bound to ${normalizedEmail}`);
+        }
+
+        if (license.status !== 'active') return res.json({ valid: false, status: license.status, error: `License is ${license.status}` });
 
         if (license.endDate && new Date() > new Date(license.endDate)) {
             license.status = 'expired';
             await license.save();
-            return res.json({ valid: false, status: 'expired' });
+            return res.json({ valid: false, status: 'expired', error: 'License expired' });
         }
 
         res.json({ valid: true, type: license.type, expires: license.endDate, daysRemaining: license.daysRemaining });
     } catch (error) {
+        console.error("Validate error:", error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -309,7 +333,7 @@ app.get('/api/admin/licenses', adminAuth, async (req, res) => {
     try {
         const licenses = await License.find().sort({ createdAt: -1 });
         res.json(licenses.map(l => ({
-            id: l._id, key: l.key, email: l.email, type: l.type, status: l.status,
+            id: l._id, key: l.key, email: l.email || 'Unbound (Floating)', type: l.type, status: l.status,
             startDate: l.startDate, endDate: l.endDate, daysRemaining: l.daysRemaining,
             notes: l.notes, createdAt: l.createdAt
         })));
@@ -321,12 +345,19 @@ app.get('/api/admin/licenses', adminAuth, async (req, res) => {
 app.post('/api/admin/licenses', adminAuth, async (req, res) => {
     try {
         const { email, type, notes } = req.body;
+        // Email is now optional. If provided, it's bound. If not, it's floating.
         const key = `SNIPER-${uuidv4().substring(0, 8).toUpperCase()}`;
-        const license = new License({ key, email: email.toLowerCase(), type, notes });
+        const license = new License({
+            key,
+            email: email ? email.toLowerCase() : undefined,
+            type,
+            notes
+        });
         await license.save();
         res.json({ success: true, license });
     } catch (error) {
-        res.status(500).json({ error: 'Error creating license' });
+        console.error("Create license error:", error);
+        res.status(500).json({ error: 'Error creating license: ' + error.message });
     }
 });
 

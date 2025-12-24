@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useReceptions, useProjects, useBlocks, useCategories, useReserves, useContractors, generateId } from "@/hooks/useLocalStorage";
 import { Reception } from "@/types";
-import { Plus, ClipboardCheck, AlertTriangle, CheckCircle, Edit, Trash2, Save, X, FileText } from "lucide-react";
+import { Plus, ClipboardCheck, AlertTriangle, CheckCircle, Edit, Trash2, Save, X, FileText, Upload, Paperclip } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/use-toast";
@@ -16,6 +16,7 @@ import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Receptions = () => {
   const [receptions, setReceptions] = useReceptions();
@@ -33,7 +34,14 @@ const Receptions = () => {
   const [responsibleParties, setResponsibleParties] = useState("");
 
   const [editingReception, setEditingReception] = useState<Reception | null>(null);
+
   const [editingData, setEditingData] = useState<Partial<Reception>>({});
+
+  // Custom PV States
+  const [isAttachDialogOpen, setIsAttachDialogOpen] = useState(false);
+  const [attachMode, setAttachMode] = useState<'file' | 'text'>('file');
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [customPvContent, setCustomPvContent] = useState("");
 
   const { t } = useTranslation();
   const { canAddReception, isTrial, limits, isActive } = useSubscription();
@@ -178,6 +186,83 @@ const Receptions = () => {
       title: t('receptionCreated'),
       description: `${t('receptionCreated')} ${hasReserves ? `${relatedReserves.length} ${t('reservesIdentified')}` : t('withoutReserves')}`,
     });
+  };
+
+  const handleAttachPV = async () => {
+    if (!selectedProject) {
+      toast({
+        title: t('error'),
+        description: t('projectRequired'),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (attachMode === 'file' && !attachedFile) {
+      toast({
+        title: t('error'),
+        description: t('fileRequired') || "Veuillez sélectionner un fichier",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (attachMode === 'text' && !customPvContent.trim()) {
+      toast({
+        title: t('error'),
+        description: t('contentRequired') || "Veuillez saisir le contenu du PV",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let attachmentUrl = '';
+    if (attachMode === 'file' && attachedFile) {
+      // Convert file to base64
+      const reader = new FileReader();
+      attachmentUrl = await new Promise((resolve) => {
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(attachedFile);
+      });
+    }
+
+    const newReception: Reception = {
+      id: generateId(),
+      projectId: selectedProject,
+      blockId: selectedBlocks.length === 1 ? selectedBlocks[0] : undefined,
+      categoryId: selectedCategory && selectedCategory !== 'all' ? selectedCategory : undefined,
+      date: new Date().toISOString(),
+      responsibleParties: responsibleParties.split(',').map(p => p.trim()).filter(p => p),
+      hasReserves: false, // Default for custom PV
+      reserveCount: 0,
+      isOnTime: true, // Default
+      delayDays: 0,
+      pvGenerated: false,
+      pvContent: attachMode === 'text' ? customPvContent : '',
+      attachmentType: attachMode,
+      attachmentUrl: attachMode === 'file' ? attachmentUrl : undefined,
+      attachmentName: attachMode === 'file' ? attachedFile?.name : undefined,
+      createdAt: new Date().toISOString(),
+    };
+
+    setReceptions(prev => [...prev, newReception]);
+    setIsAttachDialogOpen(false);
+    resetForm();
+
+    toast({
+      title: t('receptionCreated'),
+      description: t('customPvAttached') || "PV personnalisé joint avec succès",
+    });
+  };
+
+  const resetForm = () => {
+    setSelectedProject("");
+    setSelectedBlocks([]);
+    setSelectedCategory("all");
+    setSelectedContractor("all");
+    setResponsibleParties("");
+    setAttachedFile(null);
+    setCustomPvContent("");
   };
 
   const generatePV = (data: {
@@ -434,184 +519,311 @@ ${t('generatedOn')} ${new Date().toLocaleString()}`;
             </div>
           </DialogContent>
         </Dialog>
+
+
+        <Dialog open={isAttachDialogOpen} onOpenChange={setIsAttachDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" onClick={() => setIsAttachDialogOpen(true)} disabled={!isActive || !canAdd}>
+              <Paperclip className="mr-2 h-4 w-4" />
+              {t('attach') || "Joindre"}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{t('attachPV') || "Joindre un PV"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">{t('project')} *</Label>
+                  <Select value={selectedProject} onValueChange={handleProjectChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('selectProject')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map(project => (
+                        <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">{t('categories')} ({t('optional')})</Label>
+                  <Select value={selectedCategory} onValueChange={handleCategoryChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('selectCategory')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('allCategories')}</SelectItem>
+                      {getFilteredCategories().map(category => (
+                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">{t('contractors')} ({t('optional')})</Label>
+                <Select value={selectedContractor} onValueChange={handleContractorChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('selectContractor')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('allContractors')}</SelectItem>
+                    {getFilteredContractors().map(contractor => (
+                      <SelectItem key={contractor.id} value={contractor.id}>{contractor.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium">{t('responsibleParties')}</Label>
+                <Input
+                  placeholder={t('enterNames')}
+                  value={responsibleParties}
+                  onChange={(e) => setResponsibleParties(e.target.value)}
+                />
+              </div>
+
+              <Tabs defaultValue="file" value={attachMode} onValueChange={(v) => setAttachMode(v as 'file' | 'text')}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="file">{t('importFile') || "Importer un fichier"}</TabsTrigger>
+                  <TabsTrigger value="text">{t('writePV') || "Rédiger le PV"}</TabsTrigger>
+                </TabsList>
+                <TabsContent value="file" className="space-y-4 mt-4">
+                  <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => document.getElementById('pv-file-upload')?.click()}>
+                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm font-medium">{attachedFile ? attachedFile.name : (t('clickToUpload') || "Cliquez pour sélectionner un fichier")}</p>
+                    <p className="text-xs text-muted-foreground mt-1">PDF, Images, Docx...</p>
+                    <input
+                      id="pv-file-upload"
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => setAttachedFile(e.target.files?.[0] || null)}
+                    />
+                  </div>
+                </TabsContent>
+                <TabsContent value="text" className="space-y-4 mt-4">
+                  <Textarea
+                    placeholder={t('writePVContent') || "Rédigez le contenu du PV ici..."}
+                    className="min-h-[200px]"
+                    value={customPvContent}
+                    onChange={(e) => setCustomPvContent(e.target.value)}
+                  />
+                </TabsContent>
+              </Tabs>
+
+              <Button onClick={handleAttachPV} className="w-full">
+                <Save className="mr-2 h-4 w-4" />
+                {t('save')}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {receptions.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">{t('noReceptions')}</h3>
-            <p className="text-muted-foreground mb-4">{t('createFirstReception')}</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {receptions
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            .map((reception) => (
-              <Card key={reception.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      {editingReception?.id === reception.id ? (
-                        <div className="space-y-2">
-                          <Input
-                            value={getProjectName(editingData.projectId || reception.projectId)}
-                            disabled
-                          />
-                          <Input
-                            placeholder={t('responsibleParties')}
-                            value={editingData.responsibleParties?.join(', ') || ''}
-                            onChange={(e) => setEditingData(prev => ({
-                              ...prev,
-                              responsibleParties: e.target.value.split(',').map(p => p.trim()).filter(p => p)
-                            }))}
-                          />
-                        </div>
-                      ) : (
-                        <>
-                          <CardTitle className="text-lg">
-                            {t('reception')} - {getProjectName(reception.projectId)}
-                          </CardTitle>
-                          <CardDescription>
-                            {getBlockName(reception.blockId) && `${t('block')}: ${getBlockName(reception.blockId)} • `}
-                            {getCategoryName(reception.categoryId) && `${t('categories')}: ${getCategoryName(reception.categoryId)} • `}
-                            {new Date(reception.date).toLocaleDateString()}
-                          </CardDescription>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {editingReception?.id === reception.id ? (
-                        <>
-                          <Button size="sm" onClick={handleSaveEdit}>
-                            <Save className="h-4 w-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => {
-                            setEditingReception(null);
-                            setEditingData({});
-                          }}>
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button size="sm" variant="outline" onClick={() => handleEditReception(reception)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>{t('confirmDelete')}</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  {t('deleteReceptionWarning')}
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteReception(reception.id)}>
-                                  {t('delete')}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </>
-                      )}
-                      <div className="flex flex-col gap-2">
-                        {reception.hasReserves ? (
-                          <Badge variant="destructive">
-                            <AlertTriangle className="mr-1 h-3 w-3" />
-                            {t('withReserves')} ({reception.reserveCount})
-                          </Badge>
+      {
+        receptions.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <ClipboardCheck className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">{t('noReceptions')}</h3>
+              <p className="text-muted-foreground mb-4">{t('createFirstReception')}</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {receptions
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .map((reception) => (
+                <Card key={reception.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        {editingReception?.id === reception.id ? (
+                          <div className="space-y-2">
+                            <Input
+                              value={getProjectName(editingData.projectId || reception.projectId)}
+                              disabled
+                            />
+                            <Input
+                              placeholder={t('responsibleParties')}
+                              value={editingData.responsibleParties?.join(', ') || ''}
+                              onChange={(e) => setEditingData(prev => ({
+                                ...prev,
+                                responsibleParties: e.target.value.split(',').map(p => p.trim()).filter(p => p)
+                              }))}
+                            />
+                          </div>
                         ) : (
-                          <Badge className="bg-green-100 text-green-800">
-                            <CheckCircle className="mr-1 h-3 w-3" />
-                            {t('withoutReserves')}
-                          </Badge>
-                        )}
-                        {reception.isOnTime ? (
-                          <Badge variant="outline" className="border-green-200 text-green-700">
-                            {t('onTime')}
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive">
-                            {t('delayed')}: {reception.delayDays}j
-                          </Badge>
+                          <>
+                            <CardTitle className="text-lg">
+                              {t('reception')} - {getProjectName(reception.projectId)}
+                            </CardTitle>
+                            <CardDescription>
+                              {getBlockName(reception.blockId) && `${t('block')}: ${getBlockName(reception.blockId)} • `}
+                              {getCategoryName(reception.categoryId) && `${t('categories')}: ${getCategoryName(reception.categoryId)} • `}
+                              {new Date(reception.date).toLocaleDateString()}
+                            </CardDescription>
+                          </>
                         )}
                       </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="font-medium text-muted-foreground">{t('receptionDate')}</p>
-                        <p>{new Date(reception.date).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium text-muted-foreground">{t('responsibleParties')}</p>
-                        <p>{reception.responsibleParties && reception.responsibleParties.length > 0 ? reception.responsibleParties.join(', ') : t('notSpecified')}</p>
-                      </div>
-                    </div>
-
-                    {reception.hasReserves && (
-                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
-                        <div className="flex items-center gap-2 text-yellow-800">
-                          <AlertTriangle className="h-4 w-4" />
-                          <span className="font-medium">
-                            {reception.reserveCount} {t('reservesIdentified')}
-                          </span>
+                      <div className="flex items-center gap-2">
+                        {editingReception?.id === reception.id ? (
+                          <>
+                            <Button size="sm" onClick={handleSaveEdit}>
+                              <Save className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => {
+                              setEditingReception(null);
+                              setEditingData({});
+                            }}>
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => handleEditReception(reception)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>{t('confirmDelete')}</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {t('deleteReceptionWarning')}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteReception(reception.id)}>
+                                    {t('delete')}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
+                        <div className="flex flex-col gap-2">
+                          {reception.hasReserves ? (
+                            <Badge variant="destructive">
+                              <AlertTriangle className="mr-1 h-3 w-3" />
+                              {t('withReserves')} ({reception.reserveCount})
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-green-100 text-green-800">
+                              <CheckCircle className="mr-1 h-3 w-3" />
+                              {t('withoutReserves')}
+                            </Badge>
+                          )}
+                          {reception.isOnTime ? (
+                            <Badge variant="outline" className="border-green-200 text-green-700">
+                              {t('onTime')}
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              {t('delayed')}: {reception.delayDays}j
+                            </Badge>
+                          )}
                         </div>
                       </div>
-                    )}
-
+                    </div>
+                  </CardHeader>
+                  <CardContent>
                     <div className="space-y-4">
-                      <QRCodeGenerator
-                        data={{
-                          pvNumber: `REC-${reception.id.slice(-6)}`,
-                          date: new Date(reception.date).toLocaleDateString(),
-                          id: reception.id,
-                          type: 'pv',
-                          title: `${t('reception')} - ${getProjectName(reception.projectId)}`,
-                          projectName: getProjectName(reception.projectId),
-                          description: reception.pvContent
-                        }}
-                        projectName={getProjectName(reception.projectId)}
-                        description={reception.pvContent}
-                        className="mt-4"
-                      />
-                      <Button variant="outline" className="w-full mt-2" onClick={() => {
-                        const blob = new Blob([reception.pvContent], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `PV-${reception.id}.txt`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                        toast({
-                          title: t('downloadStarted'),
-                          description: t('pvDownloadDesc'),
-                        });
-                      }}>
-                        <FileText className="mr-2 h-4 w-4" />
-                        {t('download')} PV
-                      </Button>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p className="font-medium text-muted-foreground">{t('receptionDate')}</p>
+                          <p>{new Date(reception.date).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-muted-foreground">{t('responsibleParties')}</p>
+                          <p>{reception.responsibleParties && reception.responsibleParties.length > 0 ? reception.responsibleParties.join(', ') : t('notSpecified')}</p>
+                        </div>
+                      </div>
+
+                      {reception.hasReserves && (
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
+                          <div className="flex items-center gap-2 text-yellow-800">
+                            <AlertTriangle className="h-4 w-4" />
+                            <span className="font-medium">
+                              {reception.reserveCount} {t('reservesIdentified')}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        <QRCodeGenerator
+                          data={{
+                            pvNumber: `REC-${reception.id.slice(-6)}`,
+                            date: new Date(reception.date).toLocaleDateString(),
+                            id: reception.id,
+                            type: 'pv',
+                            title: `${t('reception')} - ${getProjectName(reception.projectId)}`,
+                            projectName: getProjectName(reception.projectId),
+                            description: reception.pvContent
+                          }}
+                          projectName={getProjectName(reception.projectId)}
+                          description={reception.pvContent}
+                          className="mt-4"
+                        />
+                        <Button variant="outline" className="w-full mt-2" onClick={() => {
+                          const blob = new Blob([reception.pvContent], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `PV-${reception.id}.txt`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                          toast({
+                            title: t('downloadStarted'),
+                            description: t('pvDownloadDesc'),
+                          });
+                        }}>
+                          <FileText className="mr-2 h-4 w-4" />
+                          {t('download')} PV
+                        </Button>
+
+                        {/* Custom Attachment Display */}
+                        {reception.attachmentType === 'file' && reception.attachmentUrl && (
+                          <Button variant="outline" className="w-full mt-2" onClick={() => {
+                            const a = document.createElement('a');
+                            a.href = reception.attachmentUrl!;
+                            a.download = reception.attachmentName || `PV-${reception.id}`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                          }}>
+                            <Upload className="mr-2 h-4 w-4" />
+                            {t('downloadAttachment') || "Télécharger la pièce jointe"}
+                          </Button>
+                        )}
+
+                        {reception.attachmentType === 'text' && (
+                          <div className="mt-4 p-4 bg-muted rounded-md text-sm whitespace-pre-wrap">
+                            <p className="font-medium mb-2">{t('pvContent') || "Contenu du PV"}:</p>
+                            {reception.pvContent}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-        </div>
-      )}
-    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        )
+      }
+    </div >
   );
 };
 

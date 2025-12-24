@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useDevice } from '@/contexts/DeviceContext';
+import { useGoogleDrive } from '@/contexts/GoogleDriveContext';
 
 const API_URL = import.meta.env.VITE_API_URL || "https://sniper-rptn.onrender.com";
 
@@ -91,6 +92,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const { currentDevice } = useDevice();
     const machineId = currentDevice?.deviceId || localStorage.getItem('sniper_device_id') || 'unknown';
 
+    // Get user info from GoogleDriveContext
+    const { userEmail, isAuthenticated } = useGoogleDrive();
+
     // Calculate days remaining and progress
     useEffect(() => {
         if (subscription.status === 'inactive') {
@@ -133,6 +137,20 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
             setTrialAvailable(true);
         }
     }, [subscription]);
+
+    // Auto-start trial if user is authenticated and has no subscription
+    useEffect(() => {
+        const autoStartTrial = async () => {
+            if (isAuthenticated && userEmail && subscription.status === 'inactive' && trialAvailable && !isLoading) {
+                console.log("Auto-starting trial for", userEmail);
+                await startTrial(userEmail);
+            }
+        };
+
+        // Small delay to ensure everything is loaded
+        const timer = setTimeout(autoStartTrial, 2000);
+        return () => clearTimeout(timer);
+    }, [isAuthenticated, userEmail, subscription.status, trialAvailable]);
 
     // Validate active license with server on load and periodically
     useEffect(() => {
