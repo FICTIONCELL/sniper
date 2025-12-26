@@ -77,15 +77,15 @@ export function AppSidebar() {
 
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild className="h-11 md:h-9">
                     <NavLink to={item.url} end className={getNavCls}>
                       <motion.div
-                        className="flex items-center w-full"
+                        className="flex items-center w-full px-2"
                         whileHover={{ x: 4, scale: 1.02 }}
                         transition={{ type: "spring", stiffness: 400, damping: 10 }}
                       >
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
+                        <item.icon className="mr-3 md:mr-2 h-5 w-5 md:h-4 md:w-4" />
+                        {!collapsed && <span className="text-sm md:text-xs font-medium">{item.title}</span>}
                       </motion.div>
                     </NavLink>
                   </SidebarMenuButton>

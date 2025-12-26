@@ -129,9 +129,35 @@ All colors MUST be HSL.
     overflow-x: auto;
     display: block;
   }
+
+  /* Improved touch targets for mobile */
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    @apply min-h-[44px] md:min-h-0;
+  }
 }
 
 @layer utilities {
+  .mobile-only {
+    @apply block md:hidden;
+  }
+
+  .desktop-only {
+    @apply hidden md:block;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .perspective-1000 {
     perspective: 1000px;
   }

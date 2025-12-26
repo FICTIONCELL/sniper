@@ -408,132 +408,25 @@ ${t('generatedOn')} ${new Date().toLocaleString()}`;
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{t('receptions')}</h1>
-          <p className="text-muted-foreground">{t('manageReceptions')}</p>
+          <h1 className="text-2xl md:text-3xl font-bold">{t('receptions')}</h1>
+          <p className="text-muted-foreground text-sm md:text-base">{t('manageReceptions')}</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleOpenDialog} disabled={!isActive || !canAdd}>
-              <Plus className="mr-2 h-4 w-4" />
-              {t('newReception')} & PV
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>{t('createNewReception')}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              <div>
-                <Label className="text-sm font-medium">{t('project')} *</Label>
-                <Select value={selectedProject} onValueChange={handleProjectChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('selectProject')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map(project => (
-                      <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">{t('blocks')} ({t('optional')})</Label>
-                <div className="max-h-32 overflow-y-auto border rounded p-2 space-y-1">
-                  {getFilteredBlocks().map(block => (
-                    <label key={block.id} className="flex items-center space-x-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="rounded"
-                        checked={selectedBlocks.includes(block.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedBlocks(prev => [...prev, block.id]);
-                          } else {
-                            setSelectedBlocks(prev => prev.filter(id => id !== block.id));
-                          }
-                        }}
-                      />
-                      <span>{block.name}</span>
-                    </label>
-                  ))}
-                  {getFilteredBlocks().length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      {selectedProject ? t('noBlockAvailable') : t('selectProjectFirst')}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">{t('categories')} ({t('optional')})</Label>
-                <Select value={selectedCategory} onValueChange={handleCategoryChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('selectCategory')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('allCategories')}</SelectItem>
-                    {getFilteredCategories().map(category => (
-                      <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">{t('contractors')} ({t('optional')})</Label>
-                <Select value={selectedContractor} onValueChange={handleContractorChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('selectContractor') || "Sélectionner un sous-traitant"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('allContractors') || "Tous les sous-traitants"}</SelectItem>
-                    {getFilteredContractors().map(contractor => (
-                      <SelectItem key={contractor.id} value={contractor.id}>{contractor.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedCategory && selectedCategory !== "all" && getFilteredContractors().length === 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t('noContractorForCategory')}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium">{t('responsibleParties')}</Label>
-                <Textarea
-                  placeholder={t('enterNames')}
-                  value={responsibleParties}
-                  onChange={(e) => setResponsibleParties(e.target.value)}
-                />
-              </div>
-
-              <Button onClick={handleCreateReception} className="w-full">
-                <ClipboardCheck className="mr-2 h-4 w-4" />
-                {t('create')}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleOpenDialog} disabled={!isActive || !canAdd} className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" />
+                {t('newReception')} & PV
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-
-        <Dialog open={isAttachDialogOpen} onOpenChange={setIsAttachDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" onClick={() => setIsAttachDialogOpen(true)} disabled={!isActive || !canAdd}>
-              <Paperclip className="mr-2 h-4 w-4" />
-              {t('attach') || "Joindre"}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>{t('attachPV') || "Joindre un PV"}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{t('createNewReception')}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
                 <div>
                   <Label className="text-sm font-medium">{t('project')} *</Label>
                   <Select value={selectedProject} onValueChange={handleProjectChange}>
@@ -547,6 +440,35 @@ ${t('generatedOn')} ${new Date().toLocaleString()}`;
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div>
+                  <Label className="text-sm font-medium">{t('blocks')} ({t('optional')})</Label>
+                  <div className="max-h-32 overflow-y-auto border rounded p-2 space-y-1">
+                    {getFilteredBlocks().map(block => (
+                      <label key={block.id} className="flex items-center space-x-2 text-sm py-1">
+                        <input
+                          type="checkbox"
+                          className="rounded h-4 w-4"
+                          checked={selectedBlocks.includes(block.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedBlocks(prev => [...prev, block.id]);
+                            } else {
+                              setSelectedBlocks(prev => prev.filter(id => id !== block.id));
+                            }
+                          }}
+                        />
+                        <span>{block.name}</span>
+                      </label>
+                    ))}
+                    {getFilteredBlocks().length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        {selectedProject ? t('noBlockAvailable') : t('selectProjectFirst')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <Label className="text-sm font-medium">{t('categories')} ({t('optional')})</Label>
                   <Select value={selectedCategory} onValueChange={handleCategoryChange}>
@@ -561,67 +483,142 @@ ${t('generatedOn')} ${new Date().toLocaleString()}`;
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              <div>
-                <Label className="text-sm font-medium">{t('contractors')} ({t('optional')})</Label>
-                <Select value={selectedContractor} onValueChange={handleContractorChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('selectContractor')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t('allContractors')}</SelectItem>
-                    {getFilteredContractors().map(contractor => (
-                      <SelectItem key={contractor.id} value={contractor.id}>{contractor.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div>
+                  <Label className="text-sm font-medium">{t('contractors')} ({t('optional')})</Label>
+                  <Select value={selectedContractor} onValueChange={handleContractorChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('selectContractor') || "Sélectionner un sous-traitant"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('allContractors') || "Tous les sous-traitants"}</SelectItem>
+                      {getFilteredContractors().map(contractor => (
+                        <SelectItem key={contractor.id} value={contractor.id}>{contractor.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <Label className="text-sm font-medium">{t('responsibleParties')}</Label>
-                <Input
-                  placeholder={t('enterNames')}
-                  value={responsibleParties}
-                  onChange={(e) => setResponsibleParties(e.target.value)}
-                />
-              </div>
-
-              <Tabs defaultValue="file" value={attachMode} onValueChange={(v) => setAttachMode(v as 'file' | 'text')}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="file">{t('importFile') || "Importer un fichier"}</TabsTrigger>
-                  <TabsTrigger value="text">{t('writePV') || "Rédiger le PV"}</TabsTrigger>
-                </TabsList>
-                <TabsContent value="file" className="space-y-4 mt-4">
-                  <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => document.getElementById('pv-file-upload')?.click()}>
-                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-sm font-medium">{attachedFile ? attachedFile.name : (t('clickToUpload') || "Cliquez pour sélectionner un fichier")}</p>
-                    <p className="text-xs text-muted-foreground mt-1">PDF, Images, Docx...</p>
-                    <input
-                      id="pv-file-upload"
-                      type="file"
-                      className="hidden"
-                      onChange={(e) => setAttachedFile(e.target.files?.[0] || null)}
-                    />
-                  </div>
-                </TabsContent>
-                <TabsContent value="text" className="space-y-4 mt-4">
+                <div>
+                  <Label className="text-sm font-medium">{t('responsibleParties')}</Label>
                   <Textarea
-                    placeholder={t('writePVContent') || "Rédigez le contenu du PV ici..."}
-                    className="min-h-[200px]"
-                    value={customPvContent}
-                    onChange={(e) => setCustomPvContent(e.target.value)}
+                    placeholder={t('enterNames')}
+                    value={responsibleParties}
+                    onChange={(e) => setResponsibleParties(e.target.value)}
+                    className="min-h-[80px]"
                   />
-                </TabsContent>
-              </Tabs>
+                </div>
 
-              <Button onClick={handleAttachPV} className="w-full">
-                <Save className="mr-2 h-4 w-4" />
-                {t('save')}
+                <Button onClick={handleCreateReception} className="w-full">
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  {t('create')}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isAttachDialogOpen} onOpenChange={setIsAttachDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={() => setIsAttachDialogOpen(true)} disabled={!isActive || !canAdd} className="w-full sm:w-auto">
+                <Paperclip className="mr-2 h-4 w-4" />
+                {t('attach') || "Joindre"}
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{t('attachPV') || "Joindre un PV"}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">{t('project')} *</Label>
+                    <Select value={selectedProject} onValueChange={handleProjectChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('selectProject')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.map(project => (
+                          <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">{t('categories')} ({t('optional')})</Label>
+                    <Select value={selectedCategory} onValueChange={handleCategoryChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('selectCategory')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">{t('allCategories')}</SelectItem>
+                        {getFilteredCategories().map(category => (
+                          <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">{t('contractors')} ({t('optional')})</Label>
+                  <Select value={selectedContractor} onValueChange={handleContractorChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('selectContractor')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('allContractors')}</SelectItem>
+                      {getFilteredContractors().map(contractor => (
+                        <SelectItem key={contractor.id} value={contractor.id}>{contractor.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">{t('responsibleParties')}</Label>
+                  <Input
+                    placeholder={t('enterNames')}
+                    value={responsibleParties}
+                    onChange={(e) => setResponsibleParties(e.target.value)}
+                  />
+                </div>
+
+                <Tabs defaultValue="file" value={attachMode} onValueChange={(v) => setAttachMode(v as 'file' | 'text')}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="file">{t('importFile') || "Importer un fichier"}</TabsTrigger>
+                    <TabsTrigger value="text">{t('writePV') || "Rédiger le PV"}</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="file" className="space-y-4 mt-4">
+                    <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => document.getElementById('pv-file-upload')?.click()}>
+                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-sm font-medium">{attachedFile ? attachedFile.name : (t('clickToUpload') || "Cliquez pour sélectionner un fichier")}</p>
+                      <p className="text-xs text-muted-foreground mt-1">PDF, Images, Docx...</p>
+                      <input
+                        id="pv-file-upload"
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => setAttachedFile(e.target.files?.[0] || null)}
+                      />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="text" className="space-y-4 mt-4">
+                    <Textarea
+                      placeholder={t('writePVContent') || "Rédigez le contenu du PV ici..."}
+                      className="min-h-[150px]"
+                      value={customPvContent}
+                      onChange={(e) => setCustomPvContent(e.target.value)}
+                    />
+                  </TabsContent>
+                </Tabs>
+
+                <Button onClick={handleAttachPV} className="w-full">
+                  <Save className="mr-2 h-4 w-4" />
+                  {t('save')}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {
@@ -634,19 +631,20 @@ ${t('generatedOn')} ${new Date().toLocaleString()}`;
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {receptions
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
               .map((reception) => (
-                <Card key={reception.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
+                <Card key={reception.id} className="hover:shadow-md transition-shadow border-l-4 border-l-primary overflow-hidden">
+                  <CardHeader className="p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                      <div className="space-y-1 overflow-hidden">
                         {editingReception?.id === reception.id ? (
                           <div className="space-y-2">
                             <Input
                               value={getProjectName(editingData.projectId || reception.projectId)}
                               disabled
+                              className="h-8 text-sm"
                             />
                             <Input
                               placeholder={t('responsibleParties')}
@@ -655,14 +653,15 @@ ${t('generatedOn')} ${new Date().toLocaleString()}`;
                                 ...prev,
                                 responsibleParties: e.target.value.split(',').map(p => p.trim()).filter(p => p)
                               }))}
+                              className="h-8 text-sm"
                             />
                           </div>
                         ) : (
                           <>
-                            <CardTitle className="text-lg">
+                            <CardTitle className="text-lg truncate">
                               {t('reception')} - {getProjectName(reception.projectId)}
                             </CardTitle>
-                            <CardDescription>
+                            <CardDescription className="text-xs">
                               {getBlockName(reception.blockId) && `${t('block')}: ${getBlockName(reception.blockId)} • `}
                               {getCategoryName(reception.categoryId) && `${t('categories')}: ${getCategoryName(reception.categoryId)} • `}
                               {new Date(reception.date).toLocaleDateString()}
@@ -670,65 +669,67 @@ ${t('generatedOn')} ${new Date().toLocaleString()}`;
                           </>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        {editingReception?.id === reception.id ? (
-                          <>
-                            <Button size="sm" onClick={handleSaveEdit}>
-                              <Save className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => {
-                              setEditingReception(null);
-                              setEditingData({});
-                            }}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button size="sm" variant="outline" onClick={() => handleEditReception(reception)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="destructive">
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>{t('confirmDelete')}</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    {t('deleteReceptionWarning')}
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteReception(reception.id)}>
-                                    {t('delete')}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </>
-                        )}
-                        <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between sm:justify-end gap-2">
+                        <div className="flex items-center gap-1">
+                          {editingReception?.id === reception.id ? (
+                            <>
+                              <Button size="sm" onClick={handleSaveEdit} className="h-8 w-8 p-0">
+                                <Save className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => {
+                                setEditingReception(null);
+                                setEditingData({});
+                              }} className="h-8 w-8 p-0">
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button size="sm" variant="ghost" onClick={() => handleEditReception(reception)} className="h-8 w-8 p-0">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="w-[95vw]">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>{t('confirmDelete')}</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      {t('deleteReceptionWarning')}
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteReception(reception.id)}>
+                                      {t('delete')}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1 items-end">
                           {reception.hasReserves ? (
-                            <Badge variant="destructive">
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
                               <AlertTriangle className="mr-1 h-3 w-3" />
                               {t('withReserves')} ({reception.reserveCount})
                             </Badge>
                           ) : (
-                            <Badge className="bg-green-100 text-green-800">
+                            <Badge className="bg-green-100 text-green-800 text-[10px] px-1.5 py-0">
                               <CheckCircle className="mr-1 h-3 w-3" />
                               {t('withoutReserves')}
                             </Badge>
                           )}
                           {reception.isOnTime ? (
-                            <Badge variant="outline" className="border-green-200 text-green-700">
+                            <Badge variant="outline" className="border-green-200 text-green-700 text-[10px] px-1.5 py-0">
                               {t('onTime')}
                             </Badge>
                           ) : (
-                            <Badge variant="destructive">
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
                               {t('delayed')}: {reception.delayDays}j
                             </Badge>
                           )}
@@ -736,23 +737,23 @@ ${t('generatedOn')} ${new Date().toLocaleString()}`;
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-4 pt-0">
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-2 gap-4 text-xs">
                         <div>
                           <p className="font-medium text-muted-foreground">{t('receptionDate')}</p>
                           <p>{new Date(reception.date).toLocaleDateString()}</p>
                         </div>
                         <div>
                           <p className="font-medium text-muted-foreground">{t('responsibleParties')}</p>
-                          <p>{reception.responsibleParties && reception.responsibleParties.length > 0 ? reception.responsibleParties.join(', ') : t('notSpecified')}</p>
+                          <p className="truncate">{reception.responsibleParties && reception.responsibleParties.length > 0 ? reception.responsibleParties.join(', ') : t('notSpecified')}</p>
                         </div>
                       </div>
 
                       {reception.hasReserves && (
-                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
-                          <div className="flex items-center gap-2 text-yellow-800">
-                            <AlertTriangle className="h-4 w-4" />
+                        <div className="p-2 bg-yellow-50 border border-yellow-200 rounded">
+                          <div className="flex items-center gap-2 text-yellow-800 text-xs">
+                            <AlertTriangle className="h-3 w-3" />
                             <span className="font-medium">
                               {reception.reserveCount} {t('reservesIdentified')}
                             </span>
@@ -760,7 +761,7 @@ ${t('generatedOn')} ${new Date().toLocaleString()}`;
                         </div>
                       )}
 
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         <QRCodeGenerator
                           data={{
                             pvNumber: `REC-${reception.id.slice(-6)}`,
@@ -773,9 +774,9 @@ ${t('generatedOn')} ${new Date().toLocaleString()}`;
                           }}
                           projectName={getProjectName(reception.projectId)}
                           description={reception.pvContent}
-                          className="mt-4"
+                          className="mt-2"
                         />
-                        <Button variant="outline" className="w-full mt-2" onClick={() => {
+                        <Button variant="outline" className="w-full h-9 text-sm" onClick={() => {
                           const blob = new Blob([reception.pvContent], { type: 'text/plain' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');

@@ -101,56 +101,57 @@ const ProjectDetail = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Link to="/projects">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <Link to="/projects" className="w-fit">
             <Button variant="outline" size="sm">
               <ArrowLeft className="mr-2 h-4 w-4" />
               {t('back')}
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold">{project.name}</h1>
-            <p className="text-muted-foreground">{project.description}</p>
+          <div className="overflow-hidden">
+            <h1 className="text-2xl md:text-3xl font-bold truncate">{project.name}</h1>
+            <p className="text-muted-foreground text-sm md:text-base truncate">{project.description}</p>
           </div>
         </div>
-        <Badge className={
-          project.status === 'en_cours' ? 'bg-blue-100 text-blue-800' :
-            project.status === 'termine' ? 'bg-green-100 text-green-800' :
-              'bg-yellow-100 text-yellow-800'
-        }>
+        <Badge className={`w-fit ${project.status === 'en_cours' ? 'bg-blue-100 text-blue-800' :
+          project.status === 'termine' ? 'bg-green-100 text-green-800' :
+            'bg-yellow-100 text-yellow-800'
+          }`}>
           {getStatusLabel(project.status)}
         </Badge>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{t('projectInfo')}</CardTitle>
+        <CardHeader className="p-4 md:p-6">
+          <CardTitle className="text-lg md:text-xl">{t('projectInfo')}</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-sm font-medium">{t('startDate')}</p>
-              <p className="text-muted-foreground">{new Date(project.startDate).toLocaleDateString()}</p>
+        <CardContent className="p-4 md:p-6 pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <p className="text-xs md:text-sm font-medium text-muted-foreground">{t('startDate')}</p>
+              <p className="text-sm md:text-base font-semibold">{new Date(project.startDate).toLocaleDateString()}</p>
             </div>
-            <div>
-              <p className="text-sm font-medium">{t('endDate')}</p>
-              <p className="text-muted-foreground">{new Date(project.endDate).toLocaleDateString()}</p>
+            <div className="space-y-1">
+              <p className="text-xs md:text-sm font-medium text-muted-foreground">{t('endDate')}</p>
+              <p className="text-sm md:text-base font-semibold">{new Date(project.endDate).toLocaleDateString()}</p>
             </div>
-            <div>
-              <p className="text-sm font-medium">{t('createdOn')}</p>
-              <p className="text-muted-foreground">{new Date(project.createdAt).toLocaleDateString()}</p>
+            <div className="space-y-1">
+              <p className="text-xs md:text-sm font-medium text-muted-foreground">{t('createdOn')}</p>
+              <p className="text-sm md:text-base font-semibold">{new Date(project.createdAt).toLocaleDateString()}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Tabs defaultValue="blocks" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="blocks">{t('blocks')} ({projectBlocks.length})</TabsTrigger>
-          <TabsTrigger value="apartments">{t('apartments')} ({projectApartments.length})</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-1 hide-scrollbar">
+          <TabsList className="w-full justify-start md:justify-center h-auto p-1 bg-muted/50">
+            <TabsTrigger value="blocks" className="flex-1 md:flex-none py-2 px-4">{t('blocks')} ({projectBlocks.length})</TabsTrigger>
+            <TabsTrigger value="apartments" className="flex-1 md:flex-none py-2 px-4">{t('apartments')} ({projectApartments.length})</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="blocks" className="space-y-4">
           {isTrial && (
@@ -188,17 +189,17 @@ const ProjectDetail = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {projectBlocks.map((block) => {
                 const blockApartments = getApartmentsByBlock(block.id);
                 return (
-                  <Card key={block.id}>
-                    <CardHeader>
-                      <CardTitle>{block.name}</CardTitle>
-                      <CardDescription>{block.description}</CardDescription>
+                  <Card key={block.id} className="overflow-hidden border-l-4 border-l-primary">
+                    <CardHeader className="p-4">
+                      <CardTitle className="text-lg">{block.name}</CardTitle>
+                      <CardDescription className="line-clamp-2">{block.description}</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
+                    <CardContent className="p-4 pt-0">
+                      <div className="space-y-3">
                         <p className="text-sm">
                           <span className="font-medium">{blockApartments.length}</span> {t('apartments').toLowerCase()}
                         </p>
@@ -237,25 +238,25 @@ const ProjectDetail = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {projectApartments.map((apartment) => {
                 const block = projectBlocks.find(b => b.id === apartment.blockId);
                 return (
-                  <Card key={apartment.id}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
+                  <Card key={apartment.id} className="overflow-hidden border-l-4 border-l-primary">
+                    <CardHeader className="p-4">
+                      <CardTitle className="flex items-center justify-between text-lg">
                         <span>{getTypeLabel(apartment.type)} {apartment.number}</span>
                         <Badge variant={
                           apartment.status === 'libre' ? 'secondary' :
                             apartment.status === 'reserve' ? 'default' :
                               'destructive'
-                        }>
+                        } className="text-[10px] px-1.5 py-0">
                           {getStatusLabel(apartment.status)}
                         </Badge>
                       </CardTitle>
                       <CardDescription>{t('block')}: {block?.name}</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-4 pt-0">
                       <p className="text-sm text-muted-foreground">
                         {t('surface')}: {apartment.surface} m²
                       </p>

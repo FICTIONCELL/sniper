@@ -190,15 +190,15 @@ const Reserves = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{t('reserves')}</h1>
-          <p className="text-muted-foreground">{t('manageReserves')}</p>
+          <h1 className="text-2xl md:text-3xl font-bold">{t('reserves')}</h1>
+          <p className="text-muted-foreground text-sm md:text-base">{t('manageReserves')}</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleOpenDialog} disabled={!isActive || !canAdd}>
+            <Button onClick={handleOpenDialog} disabled={!isActive || !canAdd} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               {t('newReserve')}
             </Button>
@@ -221,67 +221,68 @@ const Reserves = () => {
         </Alert>
       )}
 
-
-      <div className="flex gap-4 items-center flex-wrap">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          <span className="text-sm font-medium">{t('filters')}:</span>
+      <div className="overflow-x-auto pb-2 hide-scrollbar">
+        <div className="flex gap-3 items-center min-w-max">
+          <div className="flex items-center gap-2 shrink-0">
+            <Filter className="h-4 w-4" />
+            <span className="text-sm font-medium">{t('filters')}:</span>
+          </div>
+          <Select value={filterProject} onValueChange={setFilterProject}>
+            <SelectTrigger className="w-[140px] md:w-48">
+              <SelectValue placeholder={t('project')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('allProjects')}</SelectItem>
+              {getFilteredProjects().map(project => (
+                <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-[140px] md:w-48">
+              <SelectValue placeholder={t('category')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('allCategories')}</SelectItem>
+              {getFilteredCategories().map(category => (
+                <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterContractor} onValueChange={setFilterContractor}>
+            <SelectTrigger className="w-[140px] md:w-48">
+              <SelectValue placeholder={t('contractor')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('allContractors')}</SelectItem>
+              {getFilteredContractors().map(contractor => (
+                <SelectItem key={contractor.id} value={contractor.id}>{contractor.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[140px] md:w-48">
+              <SelectValue placeholder={t('status')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('allStatuses')}</SelectItem>
+              <SelectItem value="ouverte">{t('openReserves')}</SelectItem>
+              <SelectItem value="en_cours">{t('inProgress')}</SelectItem>
+              <SelectItem value="resolue">{t('completed')}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={filterPriority} onValueChange={setFilterPriority}>
+            <SelectTrigger className="w-[140px] md:w-48">
+              <SelectValue placeholder={t('priority')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('allPriorities')}</SelectItem>
+              <SelectItem value="urgent">{t('urgent')}</SelectItem>
+              <SelectItem value="normal">{t('normal')}</SelectItem>
+              <SelectItem value="faible">{t('low')}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={filterProject} onValueChange={setFilterProject}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder={t('project')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('allProjects')}</SelectItem>
-            {getFilteredProjects().map(project => (
-              <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder={t('category')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('allCategories')}</SelectItem>
-            {getFilteredCategories().map(category => (
-              <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterContractor} onValueChange={setFilterContractor}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder={t('contractor')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('allContractors')}</SelectItem>
-            {getFilteredContractors().map(contractor => (
-              <SelectItem key={contractor.id} value={contractor.id}>{contractor.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder={t('status')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('allStatuses')}</SelectItem>
-            <SelectItem value="ouverte">{t('openReserves')}</SelectItem>
-            <SelectItem value="en_cours">{t('inProgress')}</SelectItem>
-            <SelectItem value="resolue">{t('completed')}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterPriority} onValueChange={setFilterPriority}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder={t('priority')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('allPriorities')}</SelectItem>
-            <SelectItem value="urgent">{t('urgent')}</SelectItem>
-            <SelectItem value="normal">{t('normal')}</SelectItem>
-            <SelectItem value="faible">{t('low')}</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {filteredReserves.length === 0 ? (
@@ -311,71 +312,71 @@ const Reserves = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filteredReserves.map((reserve) => (
-            <Card key={reserve.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg">{reserve.title}</CardTitle>
-                    <CardDescription className="line-clamp-2">
+            <Card key={reserve.id} className="hover:shadow-md transition-shadow border-l-4 border-l-primary overflow-hidden">
+              <CardHeader className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1 overflow-hidden">
+                    <CardTitle className="text-lg truncate">{reserve.title}</CardTitle>
+                    <CardDescription className="line-clamp-2 text-xs">
                       {reserve.description}
                     </CardDescription>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <Badge className={getStatusColor(reserve.status)}>
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(reserve.status)}`}>
                       {getStatusLabel(reserve.status)}
                     </Badge>
-                    <Badge className={getPriorityColor(reserve.priority)}>
+                    <Badge className={`text-[10px] px-1.5 py-0 ${getPriorityColor(reserve.priority)}`}>
                       {getPriorityLabel(reserve.priority)}
                     </Badge>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+              <CardContent className="p-4 pt-0">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                     <div>
-                      <p className="font-medium">{t('project')}:</p>
-                      <p className="text-muted-foreground">{getProjectName(reserve.projectId)}</p>
+                      <p className="font-medium text-muted-foreground">{t('project')}:</p>
+                      <p className="truncate">{getProjectName(reserve.projectId)}</p>
                     </div>
                     <div>
-                      <p className="font-medium">{t('category')}:</p>
-                      <p className="text-muted-foreground">{getCategoryName(reserve.categoryId)}</p>
+                      <p className="font-medium text-muted-foreground">{t('category')}:</p>
+                      <p className="truncate">{getCategoryName(reserve.categoryId)}</p>
                     </div>
                     {getBlockName(reserve.blockId) && (
                       <div>
-                        <p className="font-medium">{t('block')}:</p>
-                        <p className="text-muted-foreground">{getBlockName(reserve.blockId)}</p>
+                        <p className="font-medium text-muted-foreground">{t('block')}:</p>
+                        <p className="truncate">{getBlockName(reserve.blockId)}</p>
                       </div>
                     )}
                     {getApartmentNumber(reserve.apartmentId) && (
                       <div>
-                        <p className="font-medium">{t('apartment')}:</p>
-                        <p className="text-muted-foreground">{getApartmentNumber(reserve.apartmentId)}</p>
+                        <p className="font-medium text-muted-foreground">{t('apartment')}:</p>
+                        <p className="truncate">{getApartmentNumber(reserve.apartmentId)}</p>
                       </div>
                     )}
-                    <div>
-                      <p className="font-medium">{t('contractor')}:</p>
-                      <p className="text-muted-foreground">{getContractorName(reserve.contractorId)}</p>
-                    </div>
-                    <div>
-                      <p className="font-medium">{t('createdOn')}:</p>
-                      <p className="text-muted-foreground">{new Date(reserve.createdAt).toLocaleDateString()}</p>
+                    <div className="col-span-2">
+                      <p className="font-medium text-muted-foreground">{t('contractor')}:</p>
+                      <p className="truncate">{getContractorName(reserve.contractorId)}</p>
                     </div>
                   </div>
 
                   {reserve.images && reserve.images.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium mb-1">{t('attachedImages', { count: reserve.images.length })}</p>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                      <Plus className="h-3 w-3" />
+                      <span>{t('attachedImages', { count: reserve.images.length })}</span>
                     </div>
                   )}
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span className="text-[10px] text-muted-foreground italic">
+                      {new Date(reserve.createdAt).toLocaleDateString()}
+                    </span>
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Eye className="mr-2 h-4 w-4" />
+                        <Button variant="outline" size="sm" className="h-8">
+                          <Eye className="mr-2 h-3 w-3" />
                           {t('viewDetails')}
                         </Button>
                       </DialogTrigger>

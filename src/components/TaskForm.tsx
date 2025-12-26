@@ -44,6 +44,23 @@ export function TaskForm({ onSubmit, initialData, isEditing = false }: TaskFormP
     }
   }, [initialData]);
 
+  // Auto-calculate duration when start or end date changes
+  useEffect(() => {
+    if (formData.startDate && formData.endDate) {
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+
+      // Calculate difference in days
+      const diffTime = end.getTime() - start.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      // Ensure duration is at least 1 day
+      const calculatedDuration = Math.max(1, diffDays);
+
+      setFormData(prev => ({ ...prev, duration: calculatedDuration }));
+    }
+  }, [formData.startDate, formData.endDate]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
@@ -121,13 +138,18 @@ export function TaskForm({ onSubmit, initialData, isEditing = false }: TaskFormP
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>{t('duration')}</Label>
+          <Label>{t('duration')} ({t('days') || 'jours'})</Label>
           <Input
             type="number"
             min="1"
             value={formData.duration}
-            onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 1 }))}
+            disabled
+            className="bg-muted cursor-not-allowed"
+            title={t('durationAutoCalculated') || 'Durée calculée automatiquement'}
           />
+          <p className="text-xs text-muted-foreground mt-1">
+            {t('autoCalculated') || 'Calculé automatiquement'}
+          </p>
         </div>
 
         <div className="space-y-2">

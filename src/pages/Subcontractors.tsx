@@ -233,7 +233,7 @@ const Subcontractors = () => {
                     }
                 }}>
                     <DialogTrigger asChild>
-                        <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg transition-all hover:scale-105">
+                        <Button className="bg-primary hover:bg-primary/90 text-black shadow-lg transition-all hover:scale-105">
                             <Plus className="mr-2 h-4 w-4" />
                             {t('addSubcontractor')}
                         </Button>
@@ -480,7 +480,8 @@ const Subcontractors = () => {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="rounded-md border overflow-x-auto">
+                    {/* Desktop Table View */}
+                    <div className="rounded-md border overflow-x-auto hidden md:block">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -579,6 +580,103 @@ const Subcontractors = () => {
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="grid grid-cols-1 gap-4 md:hidden">
+                        {filteredSubcontractors.length === 0 ? (
+                            <div className="py-12 text-center text-muted-foreground">
+                                {t('noSubcontractors')}
+                            </div>
+                        ) : (
+                            filteredSubcontractors.map((sub) => (
+                                <Card key={sub.id} className="overflow-hidden border-l-4 border-l-primary">
+                                    <CardHeader className="p-4 pb-2">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="text-xs font-mono text-muted-foreground">{sub.code}</div>
+                                                <CardTitle className="text-lg">{sub.name}</CardTitle>
+                                            </div>
+                                            <Badge variant={sub.status === 'entreprise' ? 'default' : 'secondary'}>
+                                                {t(sub.status)}
+                                            </Badge>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-4 pt-0 space-y-3">
+                                        <div className="flex flex-wrap gap-2">
+                                            <Badge variant="outline" className="bg-muted/50">
+                                                {sub.domain}
+                                            </Badge>
+                                            <Badge variant="outline">
+                                                {t(sub.typePrestation)}
+                                            </Badge>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 text-sm">
+                                            <div className="space-y-1">
+                                                <div className="text-muted-foreground text-xs">{t('price')}</div>
+                                                <div className="font-semibold">{sub.price} {sub.tvaIncluded ? "(TTC)" : "(HT)"} / {t(sub.unit)}</div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="text-muted-foreground text-xs">{t('performance')}</div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-1">
+                                                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                                        <span>{sub.rating > 0 ? sub.rating.toFixed(1) : "-"}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Clock className={`h-3 w-3 ${sub.delay > 0 ? "text-red-500" : "text-green-500"}`} />
+                                                        <span className={sub.delay > 0 ? "text-red-500" : "text-green-500"}>{sub.delay}j</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-4 text-sm text-muted-foreground pt-2 border-t">
+                                            <div className="flex items-center gap-1">
+                                                <Phone className="h-3 w-3" />
+                                                <span>{sub.phone}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 truncate">
+                                                <Mail className="h-3 w-3" />
+                                                <span className="truncate">{sub.email}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-end gap-2 pt-2">
+                                            <Button variant="outline" size="sm" onClick={() => handleAddToContractors(sub)} className="flex-1">
+                                                <UserPlus className="h-4 w-4 mr-2" />
+                                                {t('addToContractors')}
+                                            </Button>
+                                            <Button variant="outline" size="icon" onClick={() => handleEdit(sub)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="outline" size="icon" className="text-red-500">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>{t('areYouSure')}</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            {t('irreversibleAction')}
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDelete(sub.id)} className="bg-red-500 hover:bg-red-600">
+                                                            {t('delete')}
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
                     </div>
                 </CardContent>
             </Card>

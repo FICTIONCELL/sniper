@@ -303,383 +303,333 @@ const Settings = () => {
     const lowerType = (type || '').toLowerCase();
     if (lowerType.includes('mobile') || lowerType.includes('android') || lowerType.includes('iphone')) {
       return <Smartphone className="h-5 w-5" />;
+    } else if (lowerType.includes('tablet') || lowerType.includes('ipad')) {
+      return <Monitor className="h-5 w-5" />;
+    } else {
+      return <Laptop className="h-5 w-5" />;
     }
-    return <Laptop className="h-5 w-5" />;
   };
 
   return (
-    <div className="p-6 space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <SettingsIcon className="h-8 w-8" />
-          {t('settings')}
-        </h1>
-        <p className="text-muted-foreground">{t('customizeExperience')}</p>
+    <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">{t('settings')}</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">{t('managePreferences')}</p>
       </div>
 
-      <Tabs defaultValue="general" className="w-full max-w-2xl">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="general">{t('settings')}</TabsTrigger>
-          <TabsTrigger value="profile">{t('profile')}</TabsTrigger>
-          <TabsTrigger value="devices">{t('devices') || 'Appareils'}</TabsTrigger>
-          <TabsTrigger value="subscription">{t('subscription') || 'Abonnement'}</TabsTrigger>
+      <Tabs defaultValue="general" className="w-full">
+        <TabsList className="w-full sm:w-[95vw] overflow-x-auto flex justify-start sm:justify-center hide-scrollbar mb-6">
+          <TabsTrigger value="general" className="flex-shrink-0 px-3 sm:px-4 text-xs sm:text-sm">{t('general')}</TabsTrigger>
+          <TabsTrigger value="profile" className="flex-shrink-0 px-3 sm:px-4 text-xs sm:text-sm">{t('profile')}</TabsTrigger>
+          <TabsTrigger value="devices" className="flex-shrink-0 px-3 sm:px-4 text-xs sm:text-sm">{t('devices')}</TabsTrigger>
+          <TabsTrigger value="subscription" className="flex-shrink-0 px-3 sm:px-4 text-xs sm:text-sm">{t('subscription')}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="general" className="space-y-6 mt-6">
-          <div className="grid gap-6">
-            {/* Theme Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {currentTheme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-                  {t('appearance')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="theme-select" className="text-base">{t('interfaceTheme')}</Label>
-                  <Select value={currentTheme} onValueChange={handleThemeChange}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">
-                        <div className="flex items-center gap-2">
-                          <Sun className="h-4 w-4" />
-                          {t('lightTheme')}
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="dark">
-                        <div className="flex items-center gap-2">
-                          <Moon className="h-4 w-4" />
-                          {t('darkTheme')}
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="system">
-                        <div className="flex items-center gap-2">
-                          <SettingsIcon className="h-4 w-4" />
-                          {t('systemTheme')}
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {t('chooseAppearance')}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Notifications Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {notificationState.notificationsEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
-                  {t('notifications')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Master Switch */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label htmlFor="notifications-master" className="text-base font-medium">{t('enableNotifications') || 'Activer les notifications'}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {t('notificationsDescription') || 'Activez ou désactivez toutes les notifications de l\'application.'}
-                    </p>
-                  </div>
-                  <Switch
-                    id="notifications-master"
-                    checked={notificationState.notificationsEnabled}
-                    onCheckedChange={(checked) => updateNotificationSettings({ notificationsEnabled: checked })}
-                  />
-                </div>
-
-                {/* Sound Switch */}
-                <div className="flex items-center justify-between border-t pt-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="notifications-sound" className="text-base">{t('notificationSound') || 'Sons de notification'}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {t('notificationSoundDesc') || 'Jouer un son lors de la réception d\'une notification.'}
-                    </p>
-                  </div>
-                  <Switch
-                    id="notifications-sound"
-                    checked={notificationState.soundEnabled}
-                    onCheckedChange={(checked) => updateNotificationSettings({ soundEnabled: checked })}
-                    disabled={!notificationState.notificationsEnabled}
-                  />
-                </div>
-
-                {/* Toast Switch */}
-                <div className="flex items-center justify-between border-t pt-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="notifications-toast" className="text-base">{t('notificationMessage') || 'Messages de notification'}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {t('notificationMessageDesc') || 'Afficher les messages pop-up (toasts) à l\'écran.'}
-                    </p>
-                  </div>
-                  <Switch
-                    id="notifications-toast"
-                    checked={notificationState.toastsEnabled}
-                    onCheckedChange={(checked) => updateNotificationSettings({ toastsEnabled: checked })}
-                    disabled={!notificationState.notificationsEnabled}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Language Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="h-5 w-5" />
-                  {t('languageAndRegion')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="language-select" className="text-base">{t('interfaceLanguage')}</Label>
-                  <Select value={settings.language} onValueChange={handleLanguageChange}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fr">
-                        <div className="flex items-center gap-2">
-                          🇫🇷 Français
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="ar">
-                        <div className="flex items-center gap-2">
-                          🇸🇦 العربية
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="en">
-                        <div className="flex items-center gap-2">
-                          🇺🇸 English
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="es">
-                        <div className="flex items-center gap-2">
-                          🇪🇸 Español
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {t('uiLanguageDescription')}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Compact Mode Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Smartphone className="h-5 w-5" />
-                  {t('compactMode')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label htmlFor="compact-switch" className="text-base">{t('enableCompactMode')}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {t('compactModeDescription')}
-                    </p>
-                  </div>
-                  <Switch
-                    id="compact-switch"
-                    checked={settings.compactMode}
-                    onCheckedChange={handleCompactModeChange}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Google Drive Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Cloud className="h-5 w-5" />
-                  {t('googleDrive')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between pt-4">
-                  <div className="space-y-1">
-                    <Label className="text-base">{t('connectionStatus')}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {isAuthenticated ? t('connected') : t('disconnected')}
-                    </p>
-
-                    {isAuthenticated && user && (
-                      <div className="flex items-center gap-3 mt-2 p-2 bg-muted/50 rounded-lg">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={user.picture} alt={user.name} />
-                          <AvatarFallback>{user.name ? user.name.charAt(0).toUpperCase() : <User className="h-4 w-4" />}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{user.name}</p>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
-                        </div>
+        <TabsContent value="general" className="space-y-4 sm:space-y-6 mt-6">
+          {/* Appearance Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {currentTheme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                {t('appearance')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="theme-select" className="text-base">{t('interfaceTheme')}</Label>
+                <Select value={currentTheme} onValueChange={handleThemeChange}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">
+                      <div className="flex items-center gap-2">
+                        <Sun className="h-4 w-4" />
+                        {t('lightTheme')}
                       </div>
-                    )}
+                    </SelectItem>
+                    <SelectItem value="dark">
+                      <div className="flex items-center gap-2">
+                        <Moon className="h-4 w-4" />
+                        {t('darkTheme')}
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="system">
+                      <div className="flex items-center gap-2">
+                        <SettingsIcon className="h-4 w-4" />
+                        {t('systemTheme')}
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {t('chooseAppearance')}
+              </p>
+            </CardContent>
+          </Card >
 
-                    {lastSynced && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {t('lastSynced')}: {lastSynced.toLocaleString()}
-                      </p>
-                    )}
-                    {pendingSync && (
-                      <p className="text-xs text-yellow-600 mt-1">
-                        {t('syncPending')}...
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2 flex-col sm:flex-row">
-                    {isAuthenticated ? (
-                      <>
-                        <Button variant="outline" onClick={syncData} disabled={isSyncing} size="sm">
-                          {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                          {t('syncNow')}
-                        </Button>
-                        <Button variant="destructive" onClick={logout} size="sm">
-                          {t('disconnect')}
-                        </Button>
-                      </>
-                    ) : (
-                      <Button onClick={() => login()}>
-                        {t('connect')}
-                      </Button>
-                    )}
-                  </div>
+          {/* Notifications Settings */}
+          < Card >
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {notificationState.notificationsEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
+                {t('notifications')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Master Switch */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="notifications-master" className="text-base font-medium">{t('enableNotifications') || 'Activer les notifications'}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t('notificationsDescription') || 'Activez ou désactivez toutes les notifications de l\'application.'}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
+                <Switch
+                  id="notifications-master"
+                  checked={notificationState.notificationsEnabled}
+                  onCheckedChange={(checked) => updateNotificationSettings({ notificationsEnabled: checked })}
+                />
+              </div>
 
-            {/* Data Management */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Download className="h-5 w-5" />
-                  {t('dataManagement')}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-base">{t('loadDemoData')}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {t('loadDemoDataDescription')}
-                    </p>
-                  </div>
-                  <Button variant="outline" onClick={loadDemoData}>
-                    <Download className="h-4 w-4 mr-2" />
-                    {t('loadDemo')}
-                  </Button>
+              {/* Sound Switch */}
+              <div className="flex items-center justify-between border-t pt-4">
+                <div className="space-y-1">
+                  <Label htmlFor="notifications-sound" className="text-base">{t('notificationSound') || 'Sons de notification'}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t('notificationSoundDesc') || 'Jouer un son lors de la réception d\'une notification.'}
+                  </p>
                 </div>
+                <Switch
+                  id="notifications-sound"
+                  checked={notificationState.soundEnabled}
+                  onCheckedChange={(checked) => updateNotificationSettings({ soundEnabled: checked })}
+                  disabled={!notificationState.notificationsEnabled}
+                />
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-base">{t('exportData')}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {t('exportDataDescription')}
-                    </p>
-                  </div>
-                  <Button variant="outline" onClick={exportData}>
-                    <Download className="h-4 w-4 mr-2" />
-                    {t('export')}
-                  </Button>
+              {/* Toast Switch */}
+              <div className="flex items-center justify-between border-t pt-4">
+                <div className="space-y-1">
+                  <Label htmlFor="notifications-toast" className="text-base">{t('notificationMessage') || 'Messages de notification'}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t('notificationMessageDesc') || 'Afficher les messages pop-up (toasts) à l\'écran.'}
+                  </p>
                 </div>
+                <Switch
+                  id="notifications-toast"
+                  checked={notificationState.toastsEnabled}
+                  onCheckedChange={(checked) => updateNotificationSettings({ toastsEnabled: checked })}
+                  disabled={!notificationState.notificationsEnabled}
+                />
+              </div>
+            </CardContent>
+          </Card >
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-base">{t('importData')}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {t('importDataDescription')}
-                    </p>
-                  </div>
-                  <div>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={importData}
-                      className="hidden"
-                      id="import-file"
-                    />
-                    <Button variant="outline" onClick={() => document.getElementById('import-file')?.click()}>
+          {/* Language Settings */}
+          < Card >
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" />
+                {t('languageAndRegion')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="language-select" className="text-base">{t('interfaceLanguage')}</Label>
+                <Select value={settings.language} onValueChange={handleLanguageChange}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fr">
+                      <div className="flex items-center gap-2">
+                        🇫🇷 Français
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="ar">
+                      <div className="flex items-center gap-2">
+                        🇸🇦 العربية
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="en">
+                      <div className="flex items-center gap-2">
+                        🇺🇸 English
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="es">
+                      <div className="flex items-center gap-2">
+                        🇪🇸 Español
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {t('uiLanguageDescription')}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Compact Mode Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5" />
+                {t('compactMode')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="compact-mode" className="text-base">{t('enableCompactMode')}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t('compactModeDescription')}
+                  </p>
+                </div>
+                <Switch
+                  id="compact-mode"
+                  checked={settings.compactMode}
+                  onCheckedChange={handleCompactModeChange}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Data Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Download className="h-5 w-5" />
+                {t('dataManagement')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button onClick={exportData} className="flex-1 sm:flex-none">
+                  <Download className="h-4 w-4 mr-2" />
+                  {t('exportData')}
+                </Button>
+                <Button onClick={loadDemoData} variant="outline" className="flex-1 sm:flex-none">
+                  {t('loadDemoData')}
+                </Button>
+                <label htmlFor="import-file" className="flex-1 sm:flex-none">
+                  <Button variant="outline" className="w-full" asChild>
+                    <span>
                       <Upload className="h-4 w-4 mr-2" />
-                      {t('import')}
+                      {t('importData')}
+                    </span>
+                  </Button>
+                  <input
+                    id="import-file"
+                    type="file"
+                    accept=".json"
+                    onChange={importData}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {t('eraseAllData')}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{t('confirmErase')}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {t('eraseWarning')}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <Input
+                    type="text"
+                    placeholder={t('enterCode1270')}
+                    value={eraseCode}
+                    onChange={(e) => setEraseCode(e.target.value)}
+                  />
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleEraseData}>
+                      {t('confirm')}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <Button onClick={resetSettings} variant="outline" className="w-full">
+                {t('resetSettings')}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Google Drive Sync */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Cloud className="h-5 w-5" />
+                {t('googleDriveSync')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!isAuthenticated ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">{t('connectGoogleDrive')}</p>
+                  <Button onClick={login} className="w-full">
+                    <Cloud className="h-4 w-4 mr-2" />
+                    {t('connectToGoogleDrive')}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <div>
+                        <p className="text-sm font-medium">{t('connected')}</p>
+                        {user && <p className="text-xs text-muted-foreground">{user.email}</p>}
+                      </div>
+                    </div>
+                    <Button onClick={logout} variant="outline" size="sm">
+                      {t('disconnect')}
                     </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Reset Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-destructive">{t('dangerZone')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-base">{t('eraseAllDataTitle')}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {t('eraseAllDataDescription')}
+                  {lastSynced && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('lastSynced')}: {new Date(lastSynced).toLocaleString()}
                     </p>
-                  </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        {t('eraseData')}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{t('eraseAllDataTitle')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {t('eraseAllDataConfirmDesc')}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <div className="my-4">
-                        <Input
-                          type="text"
-                          placeholder={t('enterCode')}
-                          value={eraseCode}
-                          onChange={(e) => setEraseCode(e.target.value)}
-                        />
-                      </div>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setEraseCode("")}>{t('cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleEraseData}>
-                          {t('erasePermanently')}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                  )}
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-base">{t('resetToDefault')}</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {t('resetAllSettings')}
-                    </p>
-                  </div>
-                  <Button variant="outline" onClick={resetSettings}>
-                    {t('reset')}
+                  <Button onClick={syncData} disabled={isSyncing} className="w-full">
+                    {isSyncing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {t('syncing')}
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="h-4 w-4 mr-2" />
+                        {t('syncNow')}
+                      </>
+                    )}
                   </Button>
+
+                  {pendingSync && (
+                    <p className="text-xs text-yellow-600 dark:text-yellow-500">
+                      {t('pendingChanges')}
+                    </p>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        <TabsContent value="profile" className="space-y-6 mt-6">
+        <TabsContent value="profile" className="space-y-4 sm:space-y-6 mt-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -717,7 +667,6 @@ const Settings = () => {
                   placeholder="+1234567890"
                 />
               </div>
-
             </CardContent>
           </Card>
 
@@ -904,7 +853,7 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent >
 
         <TabsContent value="devices" className="space-y-6 mt-6">
           <Card>

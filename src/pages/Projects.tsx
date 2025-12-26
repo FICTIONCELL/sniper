@@ -90,15 +90,15 @@ const Projects = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{t('projects')}</h1>
-          <p className="text-muted-foreground">{t('manageProjects')}</p>
+          <h1 className="text-2xl md:text-3xl font-bold">{t('projects')}</h1>
+          <p className="text-muted-foreground text-sm md:text-base">{t('manageProjects')}</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleOpenDialog} disabled={!isActive || !canAdd}>
+            <Button onClick={handleOpenDialog} disabled={!isActive || !canAdd} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" />
               {t('newProject')}
             </Button>
@@ -155,44 +155,41 @@ const Projects = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((project) => (
-            <Card key={project.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{project.name}</CardTitle>
-                  <Badge className={getStatusColor(project.status)}>
+            <Card key={project.id} className="hover:shadow-md transition-shadow border-l-4 border-l-primary overflow-hidden">
+              <CardHeader className="p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-lg truncate">{project.name}</CardTitle>
+                  <Badge className={`shrink-0 ${getStatusColor(project.status)}`}>
                     {getStatusLabel(project.status)}
                   </Badge>
                 </div>
-                <CardDescription className="line-clamp-2">
+                <CardDescription className="line-clamp-2 mt-1">
                   {project.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+              <CardContent className="p-4 pt-0">
+                <div className="space-y-4">
                   <div className="flex items-center text-sm text-muted-foreground">
-                    <Calendar className="mr-2 h-4 w-4" />
-                    <span>
+                    <Calendar className="mr-2 h-4 w-4 shrink-0" />
+                    <span className="truncate">
                       {new Date(project.startDate).toLocaleDateString()} - {new Date(project.endDate).toLocaleDateString()}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-xs text-muted-foreground">
-                      {t('createdOn')} {new Date(project.createdAt).toLocaleDateString()}
-                    </span>
-                    <div className="flex gap-2">
-                      <Link to={`/projects/${project.id}`}>
-                        <Button variant="outline" size="sm">
-                          <Eye className="mr-2 h-4 w-4" />
-                          {t('viewDetails')}
-                        </Button>
-                      </Link>
+
+                  <div className="flex flex-wrap gap-2 pt-2 border-t">
+                    <Link to={`/projects/${project.id}`} className="flex-1 min-w-[120px]">
+                      <Button variant="outline" size="sm" className="w-full">
+                        <Eye className="mr-2 h-4 w-4" />
+                        {t('viewDetails')}
+                      </Button>
+                    </Link>
+                    <div className="flex gap-2 w-full sm:w-auto">
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="outline" size="sm" onClick={() => setEditingProject(project)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            {t('edit')}
+                          <Button variant="outline" size="sm" onClick={() => setEditingProject(project)} className="flex-1 sm:flex-none">
+                            <Edit className="h-4 w-4" />
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-md">
@@ -213,9 +210,8 @@ const Projects = () => {
                       </Dialog>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            {t('delete')}
+                          <Button variant="destructive" size="sm" className="flex-1 sm:flex-none">
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -236,6 +232,9 @@ const Projects = () => {
                         </AlertDialogContent>
                       </AlertDialog>
                     </div>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground text-right italic">
+                    {t('createdOn')} {new Date(project.createdAt).toLocaleDateString()}
                   </div>
                 </div>
               </CardContent>

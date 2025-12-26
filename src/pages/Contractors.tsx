@@ -186,10 +186,10 @@ const Contractors = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {contractors.map((contractor) => (
-            <Card key={contractor.id} className={`hover:shadow-md transition-shadow ${isContractExpired(contractor) ? 'border-red-200' :
-              isContractExpiringSoon(contractor) ? 'border-yellow-200' : ''
+            <Card key={contractor.id} className={`hover:shadow-md transition-shadow border-l-4 ${isContractExpired(contractor) ? 'border-l-red-500' :
+              isContractExpiringSoon(contractor) ? 'border-l-yellow-500' : 'border-l-primary'
               }`}>
               <CardHeader>
                 <div className="flex items-center justify-between">

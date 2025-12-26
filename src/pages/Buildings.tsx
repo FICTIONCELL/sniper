@@ -163,29 +163,33 @@ const Buildings = () => {
   };
 
   return (
-    <div className="p-6 space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Building2 className="h-8 w-8" />
-          {t('buildingsAndApartments')}
-        </h1>
-        <p className="text-muted-foreground">
-          {t('manageBuildingsDescription')}
-        </p>
+    <div className="p-4 md:p-6 space-y-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+            <Building2 className="h-6 w-6 md:h-8 md:w-8" />
+            {t('buildingsAndApartments')}
+          </h1>
+          <p className="text-muted-foreground text-sm md:text-base">
+            {t('manageBuildingsDescription')}
+          </p>
+        </div>
       </div>
 
       {/* Project Selection */}
       <Card>
-        <CardHeader>
-          <CardTitle>{t('selectProject')}</CardTitle>
+        <CardHeader className="p-4">
+          <CardTitle className="text-lg">{t('selectProject')}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 pt-0">
           <div className="flex flex-wrap gap-2">
             {projects.map(project => (
               <Button
                 key={project.id}
                 variant={selectedProjectId === project.id ? "default" : "outline"}
                 onClick={() => setSelectedProjectId(project.id)}
+                size="sm"
+                className="flex-1 sm:flex-none min-w-[100px]"
               >
                 {project.name}
               </Button>
@@ -223,18 +227,19 @@ const Buildings = () => {
           </Dialog>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {blocks
             .filter(block => !selectedProjectId || block.projectId === selectedProjectId)
             .map(block => (
-              <Card key={block.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{block.name}</CardTitle>
-                    <div className="flex gap-2">
+              <Card key={block.id} className="border-l-4 border-l-primary overflow-hidden">
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-lg truncate">{block.name}</CardTitle>
+                    <div className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-8 w-8 p-0"
                         onClick={() => {
                           setEditingBlock(block);
                           setIsBlockDialogOpen(true);
@@ -245,6 +250,7 @@ const Buildings = () => {
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-8 w-8 p-0 text-destructive"
                         onClick={() => handleDeleteBlock(block.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -252,16 +258,16 @@ const Buildings = () => {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-2">
+                <CardContent className="p-4 pt-0">
+                  <p className="text-xs text-muted-foreground mb-1 truncate">
                     {t('project')}: {getProjectName(block.projectId)}
                   </p>
                   {block.description && (
-                    <p className="text-sm text-muted-foreground mb-2">
+                    <p className="text-sm text-muted-foreground mb-2 line-clamp-1">
                       {block.description}
                     </p>
                   )}
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm font-medium">
                     {t('apartments')}: {apartments.filter(apt => apt.blockId === block.id).length}
                   </p>
                 </CardContent>
@@ -274,10 +280,10 @@ const Buildings = () => {
       {/* Block Selection for Apartments */}
       {selectedProjectId && (
         <Card>
-          <CardHeader>
-            <CardTitle>{t('selectBlock')}</CardTitle>
+          <CardHeader className="p-4">
+            <CardTitle className="text-lg">{t('selectBlock')}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0">
             <div className="flex flex-wrap gap-2">
               {blocks
                 .filter(block => block.projectId === selectedProjectId)
@@ -286,6 +292,8 @@ const Buildings = () => {
                     key={block.id}
                     variant={selectedBlockId === block.id ? "default" : "outline"}
                     onClick={() => setSelectedBlockId(block.id)}
+                    size="sm"
+                    className="flex-1 sm:flex-none min-w-[100px]"
                   >
                     {block.name}
                   </Button>
@@ -300,13 +308,13 @@ const Buildings = () => {
       {selectedBlockId && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              <Home className="h-6 w-6" />
+            <h2 className="text-xl md:text-2xl font-semibold flex items-center gap-2">
+              <Home className="h-5 w-5 md:h-6 md:w-6" />
               {t('apartments')}
             </h2>
             <Dialog open={isApartmentDialogOpen} onOpenChange={setIsApartmentDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button size="sm">
                   <Plus className="h-4 w-4 mr-2" />
                   {t('addApartment')}
                 </Button>
@@ -326,20 +334,21 @@ const Buildings = () => {
             </Dialog>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {apartments
               .filter(apt => apt.blockId === selectedBlockId)
               .map(apartment => (
-                <Card key={apartment.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">
+                <Card key={apartment.id} className="border-l-4 border-l-primary overflow-hidden">
+                  <CardHeader className="p-4 pb-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="text-lg truncate">
                         {t('apartment')} {apartment.number}
                       </CardTitle>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-8 w-8 p-0"
                           onClick={() => {
                             setEditingApartment(apartment);
                             setIsApartmentDialogOpen(true);
@@ -350,6 +359,7 @@ const Buildings = () => {
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="h-8 w-8 p-0 text-destructive"
                           onClick={() => handleDeleteApartment(apartment.id)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -357,21 +367,23 @@ const Buildings = () => {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="p-4 pt-0">
                     <div className="space-y-2">
-                      <p className="text-sm">
-                        <span className="font-medium">{t('type')}:</span> {apartment.type}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">{t('surface')}:</span> {apartment.surface}m²
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{t('status')}:</span>
-                        <Badge className={getStatusColor(apartment.status)}>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{t('type')}:</span>
+                        <span className="font-medium">{apartment.type}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{t('surface')}:</span>
+                        <span className="font-medium">{apartment.surface}m²</span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">{t('status')}:</span>
+                        <Badge className={`text-[10px] px-1.5 py-0 ${getStatusColor(apartment.status)}`}>
                           {apartment.status}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-[10px] text-muted-foreground text-right italic">
                         {t('block')}: {getBlockName(apartment.blockId)}
                       </p>
                     </div>
