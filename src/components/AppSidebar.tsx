@@ -45,6 +45,7 @@ export function AppSidebar() {
     { title: t('buildings'), url: "/buildings", icon: Layers3 },
     { title: t('reserves'), url: "/reserves", icon: AlertTriangle },
     { title: t('contractors'), url: "/contractors", icon: Users },
+    { title: t('subcontractorComparison'), url: "/subcontractors", icon: Users },
     { title: t('resolveReserves'), url: "/resolve-reserves", icon: CheckCircle },
     { title: t('receptions'), url: "/receptions", icon: ClipboardCheck },
     { title: t('tasks'), url: "/tasks", icon: FolderOpen },

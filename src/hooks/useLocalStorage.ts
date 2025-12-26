@@ -7,7 +7,8 @@ import {
   Contractor,
   Reserve,
   Task,
-  Reception
+  Reception,
+  Subcontractor
 } from '@/types';
 import { getDefaultCategories } from '@/utils/defaultCategories';
 
@@ -47,6 +48,7 @@ export const useContractors = () => useLocalStorage<Contractor[]>('sniper_contra
 export const useReserves = () => useLocalStorage<Reserve[]>('sniper_reserves', []);
 export const useTasks = () => useLocalStorage<Task[]>('sniper_tasks', []);
 export const useReceptions = () => useLocalStorage<Reception[]>('sniper_receptions', []);
+export const useSubcontractors = () => useLocalStorage<Subcontractor[]>('sniper_subcontractors', []);
 
 // Utilitaires pour générer des IDs uniques
 export const generateId = () => {

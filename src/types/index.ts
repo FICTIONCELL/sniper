@@ -99,3 +99,22 @@ export interface Reception {
   attachmentName?: string;
   createdAt: string;
 }
+
+export interface Subcontractor {
+  id: string;
+  code: string;
+  name: string;
+  domain: string;
+  status: 'entreprise' | 'artisan';
+  phone: string;
+  email: string;
+  zone: string;
+  typePrestation: 'fourniture_pose' | 'pose' | 'fourniture';
+  price: number;
+  unit: 'm2' | 'ml' | 'forfait';
+  tvaIncluded: boolean;
+  projects?: string[];
+  delay: number;
+  rating: number;
+  createdAt: string;
+}

@@ -13,7 +13,8 @@ import {
   Type,
   LogOut,
   User,
-  Settings
+  Settings,
+  MoreVertical
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -106,7 +107,7 @@ export const TopBar = ({
 
   return (
     <div className="flex items-center gap-2">
-      {/* Search Button */}
+      {/* Search Button (Always Visible) */}
       <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
         <DialogTrigger asChild>
           <Button variant="ghost" size="sm" className="w-9 px-0">
@@ -152,36 +153,7 @@ export const TopBar = ({
         </DialogContent>
       </Dialog>
 
-      {/* Text Size Control */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" className="w-9 px-0">
-            <Type className="h-4 w-4" />
-            <span className="sr-only">Taille du texte</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64">
-          <div className="space-y-2">
-            <h4 className="font-medium leading-none">Taille du texte</h4>
-            <div className="flex items-center gap-4">
-              <span className="text-sm">A-</span>
-              <Slider
-                value={[textSize]}
-                min={80}
-                max={150}
-                step={5}
-                onValueChange={(value) => setTextSize(value[0])}
-                className="flex-1"
-              />
-              <span className="text-lg font-bold">A+</span>
-            </div>
-            <p className="text-xs text-muted-foreground text-center">{textSize}%</p>
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      {/* Cloud Sync Button */}
-      {/* Cloud Sync / User Profile Button */}
+      {/* Cloud Sync / User Profile Button (Always Visible) */}
       {isAuthenticated && user ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -243,53 +215,144 @@ export const TopBar = ({
         </Tooltip>
       )}
 
-      {/* Compact Mode Toggle */}
-      <Button
-        variant={isCompactMode ? "default" : "outline"}
-        size="sm"
-        onClick={handleCompactModeToggle}
-        className="relative gap-2 px-2 md:px-3"
-      >
-        <Minimize2 className="h-4 w-4" />
-        <span className="hidden sm:inline">{t('compactMode')}</span>
-        {isCompactMode && (
-          <Badge
-            variant="secondary"
-            className="absolute -top-1 -right-1 h-2 w-2 p-0 rounded-full bg-primary"
-          />
-        )}
-      </Button>
+      {/* Desktop Only Actions */}
+      <div className="hidden md:flex items-center gap-2">
+        {/* Text Size Control */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-9 px-0">
+              <Type className="h-4 w-4" />
+              <span className="sr-only">Taille du texte</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64">
+            <div className="space-y-2">
+              <h4 className="font-medium leading-none">Taille du texte</h4>
+              <div className="flex items-center gap-4">
+                <span className="text-sm">A-</span>
+                <Slider
+                  value={[textSize]}
+                  min={80}
+                  max={150}
+                  step={5}
+                  onValueChange={(value) => setTextSize(value[0])}
+                  className="flex-1"
+                />
+                <span className="text-lg font-bold">A+</span>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">{textSize}%</p>
+            </div>
+          </PopoverContent>
+        </Popover>
 
-      {/* Theme Toggle */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm">
-            {theme === 'dark' ? (
-              <Moon className="h-4 w-4" />
-            ) : theme === 'light' ? (
-              <Sun className="h-4 w-4" />
-            ) : (
-              <Monitor className="h-4 w-4" />
-            )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => handleThemeChange('light')}>
-            <Sun className="mr-2 h-4 w-4" />
-            {t('lightTheme')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleThemeChange('dark')}>
-            <Moon className="mr-2 h-4 w-4" />
-            {t('darkTheme')}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleThemeChange('system')}>
-            <Monitor className="mr-2 h-4 w-4" />
-            {t('systemTheme')}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        {/* Compact Mode Toggle */}
+        <Button
+          variant={isCompactMode ? "default" : "outline"}
+          size="sm"
+          onClick={handleCompactModeToggle}
+          className="relative gap-2 px-3"
+        >
+          <Minimize2 className="h-4 w-4" />
+          <span className="hidden sm:inline">{t('compactMode')}</span>
+          {isCompactMode && (
+            <Badge
+              variant="secondary"
+              className="absolute -top-1 -right-1 h-2 w-2 p-0 rounded-full bg-primary"
+            />
+          )}
+        </Button>
 
-      {/* Enhanced Notification Center */}
+        {/* Theme Toggle */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              {theme === 'dark' ? (
+                <Moon className="h-4 w-4" />
+              ) : theme === 'light' ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Monitor className="h-4 w-4" />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleThemeChange('light')}>
+              <Sun className="mr-2 h-4 w-4" />
+              {t('lightTheme')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleThemeChange('dark')}>
+              <Moon className="mr-2 h-4 w-4" />
+              {t('darkTheme')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleThemeChange('system')}>
+              <Monitor className="mr-2 h-4 w-4" />
+              {t('systemTheme')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Mobile Overflow Menu */}
+      <div className="flex md:hidden items-center">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-9 px-0">
+              <MoreVertical className="h-4 w-4" />
+              <span className="sr-only">Plus d'actions</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+
+            {/* Text Size in Mobile Dropdown */}
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              <div className="flex flex-col gap-2 w-full py-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Taille du texte</span>
+                  <span className="text-xs text-muted-foreground">{textSize}%</span>
+                </div>
+                <Slider
+                  value={[textSize]}
+                  min={80}
+                  max={150}
+                  step={5}
+                  onValueChange={(value) => setTextSize(value[0])}
+                  className="w-full"
+                />
+              </div>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            {/* Compact Mode in Mobile Dropdown */}
+            <DropdownMenuItem onClick={handleCompactModeToggle}>
+              <Minimize2 className="mr-2 h-4 w-4" />
+              <span>{t('compactMode')}</span>
+              {isCompactMode && <Badge variant="secondary" className="ml-auto h-2 w-2 p-0 rounded-full bg-primary" />}
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            {/* Theme in Mobile Dropdown */}
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">Thème</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => handleThemeChange('light')}>
+              <Sun className="mr-2 h-4 w-4" />
+              {t('lightTheme')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleThemeChange('dark')}>
+              <Moon className="mr-2 h-4 w-4" />
+              {t('darkTheme')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleThemeChange('system')}>
+              <Monitor className="mr-2 h-4 w-4" />
+              {t('systemTheme')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Enhanced Notification Center (Always Visible) */}
       <NotificationCenter />
     </div>
   );

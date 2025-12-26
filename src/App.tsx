@@ -27,6 +27,7 @@ import TestPV from "./pages/TestPV";
 import Buildings from "./pages/Buildings";
 import { Documents } from "./pages/Documents";
 import Admin from "./pages/Admin";
+import Subcontractors from "./pages/Subcontractors";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -92,6 +93,7 @@ const App = () => {
                               <Route path="/reserves" element={<MotionWrapper><Reserves /></MotionWrapper>} />
                               <Route path="/reserves/compact" element={<MotionWrapper><CompactReserves /></MotionWrapper>} />
                               <Route path="/contractors" element={<MotionWrapper><Contractors /></MotionWrapper>} />
+                              <Route path="/subcontractors" element={<MotionWrapper><Subcontractors /></MotionWrapper>} />
                               <Route path="/resolve-reserves" element={<MotionWrapper><ResolveReserves /></MotionWrapper>} />
                               <Route path="/receptions" element={<MotionWrapper><Receptions /></MotionWrapper>} />
                               <Route path="/tasks" element={<MotionWrapper><Tasks /></MotionWrapper>} />
