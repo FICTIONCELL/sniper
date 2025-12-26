@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useContractors, useCategories, generateId } from "@/hooks/useLocalStorage";
+import { useContractors, useCategories, useSubcontractors, generateId } from "@/hooks/useLocalStorage";
 import { Contractor } from "@/types";
-import { Plus, Users, Mail, Phone, Calendar, AlertTriangle, Edit, Trash2 } from "lucide-react";
+import { Plus, Users, Mail, Phone, Calendar, AlertTriangle, Edit, Trash2, Star } from "lucide-react";
 import { ContractorForm } from "@/components/ContractorForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -17,7 +17,47 @@ const Contractors = () => {
   const [categories] = useCategories();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContractor, setEditingContractor] = useState<Contractor | null>(null);
+  const [subcontractors, setSubcontractors] = useSubcontractors();
   const { toast } = useToast();
+
+  // Automatic delay and rating calculation
+  useState(() => {
+    const today = new Date();
+    let updatedSubs = [...subcontractors];
+    let hasChanges = false;
+
+    contractors.forEach(contractor => {
+      if (contractor.subcontractorId && contractor.status === 'actif') {
+        const endDate = new Date(contractor.contractEnd);
+        if (today > endDate) {
+          const diffTime = today.getTime() - endDate.getTime();
+          const delayDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          let penalty = 0;
+          if (delayDays > 10) penalty = -3;
+          else if (delayDays > 5) penalty = -2;
+          else if (delayDays > 0) penalty = -1;
+
+          const subIndex = updatedSubs.findIndex(s => s.id === contractor.subcontractorId);
+          if (subIndex !== -1) {
+            const currentSub = updatedSubs[subIndex];
+            if (currentSub.delay !== delayDays || currentSub.rating !== (5 + penalty)) {
+              updatedSubs[subIndex] = {
+                ...currentSub,
+                delay: delayDays,
+                rating: Math.max(0, 5 + penalty) // Base rating 5 - penalty
+              };
+              hasChanges = true;
+            }
+          }
+        }
+      }
+    });
+
+    if (hasChanges) {
+      setSubcontractors(updatedSubs);
+    }
+  });
 
   const handleCreateContractor = (data: Omit<Contractor, 'id' | 'createdAt'>) => {
     const newContractor: Contractor = {
@@ -38,7 +78,7 @@ const Contractors = () => {
 
     setContractors(prev => prev.map(contractor =>
       contractor.id === editingContractor.id
-        ? { ...contractor, ...data }
+        ? { ...contractor, ...data, subcontractorId: editingContractor.subcontractorId }
         : contractor
     ));
     setEditingContractor(null);
@@ -149,7 +189,7 @@ const Contractors = () => {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {contractors.map((contractor) => (
             <Card key={contractor.id} className={`hover:shadow-md transition-shadow ${isContractExpired(contractor) ? 'border-red-200' :
-                isContractExpiringSoon(contractor) ? 'border-yellow-200' : ''
+              isContractExpiringSoon(contractor) ? 'border-yellow-200' : ''
               }`}>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -172,7 +212,15 @@ const Contractors = () => {
                     )}
                   </div>
                 </div>
-                <CardDescription>{contractor.specialty}</CardDescription>
+                <CardDescription className="flex items-center justify-between">
+                  <span>{contractor.specialty}</span>
+                  {contractor.subcontractorId && (
+                    <div className="flex items-center gap-1 text-xs font-medium text-primary">
+                      <Star className="w-3 h-3 fill-primary" />
+                      {subcontractors.find(s => s.id === contractor.subcontractorId)?.rating.toFixed(1) || "5.0"}
+                    </div>
+                  )}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -236,7 +284,8 @@ const Contractors = () => {
                             categoryIds: contractor.categoryIds,
                             contractStart: contractor.contractStart,
                             contractEnd: contractor.contractEnd,
-                            status: contractor.status
+                            status: contractor.status,
+                            subcontractorId: contractor.subcontractorId
                           }}
                         />
                       </DialogContent>

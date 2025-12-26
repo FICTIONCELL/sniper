@@ -46,6 +46,7 @@ export interface Contractor {
   contractStart: string;
   contractEnd: string;
   status: 'actif' | 'expire' | 'suspendu';
+  subcontractorId?: string;
   createdAt: string;
 }
 

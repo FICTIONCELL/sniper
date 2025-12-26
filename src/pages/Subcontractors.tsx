@@ -45,9 +45,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useSubcontractors, useCategories, generateId } from "@/hooks/useLocalStorage";
-import { Subcontractor } from "@/types";
-import { Plus, Search, Filter, Star, Clock, DollarSign, Phone, Mail, MapPin, Trash2, Edit, Eye } from "lucide-react";
+import { useSubcontractors, useCategories, useContractors, generateId } from "@/hooks/useLocalStorage";
+import { Subcontractor, Contractor } from "@/types";
+import { Plus, Search, Filter, Star, Clock, DollarSign, Phone, Mail, MapPin, Trash2, Edit, Eye, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useForm } from "react-hook-form";
@@ -71,6 +71,7 @@ const Subcontractors = () => {
     const { t } = useTranslation();
     const { toast } = useToast();
     const [subcontractors, setSubcontractors] = useSubcontractors();
+    const [contractors, setContractors] = useContractors();
     const [categories] = useCategories();
 
     const [searchTerm, setSearchTerm] = useState("");
@@ -182,6 +183,39 @@ const Subcontractors = () => {
             tvaIncluded: sub.tvaIncluded,
         });
         setIsDialogOpen(true);
+    };
+
+    const handleAddToContractors = (sub: Subcontractor) => {
+        // Check if already added
+        const exists = contractors.some(c => c.subcontractorId === sub.id);
+        if (exists) {
+            toast({
+                title: t('alreadyAdded'),
+                variant: "destructive"
+            });
+            return;
+        }
+
+        const newContractor: Contractor = {
+            id: generateId(),
+            name: sub.name,
+            email: sub.email,
+            phone: sub.phone,
+            specialty: sub.domain,
+            projectId: "", // User will need to assign this in Contractors page
+            categoryIds: [], // User will need to assign this in Contractors page
+            contractStart: new Date().toISOString().split('T')[0],
+            contractEnd: new Date().toISOString().split('T')[0],
+            status: 'actif',
+            subcontractorId: sub.id,
+            createdAt: new Date().toISOString(),
+        };
+
+        setContractors([...contractors, newContractor]);
+        toast({
+            title: t('addedToContractors'),
+            description: t('addedToContractorsDesc'),
+        });
     };
 
     return (
@@ -511,6 +545,9 @@ const Subcontractors = () => {
                                             <TableCell className="text-sm">{sub.phone}</TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleAddToContractors(sub)} title={t('addToContractors')}>
+                                                        <UserPlus className="h-4 w-4 text-primary" />
+                                                    </Button>
                                                     <Button variant="ghost" size="icon" onClick={() => handleEdit(sub)}>
                                                         <Edit className="h-4 w-4" />
                                                     </Button>

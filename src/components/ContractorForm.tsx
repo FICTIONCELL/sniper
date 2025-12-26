@@ -26,7 +26,8 @@ export function ContractorForm({ onSubmit, initialData }: ContractorFormProps) {
     categoryIds: initialData?.categoryIds || [],
     contractStart: initialData?.contractStart || '',
     contractEnd: initialData?.contractEnd || '',
-    status: initialData?.status || 'actif' as const
+    status: initialData?.status || 'actif' as const,
+    subcontractorId: initialData?.subcontractorId || ''
   });
 
   const handleSubmit = (e: React.FormEvent) => {
