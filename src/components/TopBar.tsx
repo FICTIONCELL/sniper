@@ -248,10 +248,10 @@ export const TopBar = ({
         variant={isCompactMode ? "default" : "outline"}
         size="sm"
         onClick={handleCompactModeToggle}
-        className="relative gap-2"
+        className="relative gap-2 px-2 md:px-3"
       >
         <Minimize2 className="h-4 w-4" />
-        {t('compactMode')}
+        <span className="hidden sm:inline">{t('compactMode')}</span>
         {isCompactMode && (
           <Badge
             variant="secondary"

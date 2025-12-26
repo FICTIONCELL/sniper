@@ -80,28 +80,6 @@ const App = () => {
                     <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                     <Route path="/terms-of-service" element={<TermsOfService />} />
 
-                    {/* Protected Admin Route */}
-                    <Route
-                      path="/admin"
-                      element={
-                        <ProtectedRoute>
-                          <Admin />
-                        </ProtectedRoute>
-                      }
-                    />
-
-                    {/* Protected Compact Route */}
-                    <Route
-                      path="/compact"
-                      element={
-                        <ProtectedRoute>
-                          <MotionWrapper>
-                            <CompactDashboard />
-                          </MotionWrapper>
-                        </ProtectedRoute>
-                      }
-                    />
-
                     {/* Protected Main Routes */}
                     <Route path="/*" element={
                       <ProtectedRoute>
@@ -124,6 +102,7 @@ const App = () => {
                               <Route path="/documents" element={<MotionWrapper><Documents /></MotionWrapper>} />
                               <Route path="/test-pv" element={<MotionWrapper><TestPV /></MotionWrapper>} />
                               <Route path="/admin" element={<MotionWrapper><Admin /></MotionWrapper>} />
+                              <Route path="/compact" element={<MotionWrapper><CompactDashboard /></MotionWrapper>} />
                               <Route path="*" element={<MotionWrapper><NotFound /></MotionWrapper>} />
                             </Routes>
                           </AnimatePresence>

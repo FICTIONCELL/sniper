@@ -22,7 +22,7 @@ const CompactDashboard = () => {
   const { toast } = useToast();
   const { t, language } = useTranslation();
   const [isCompactMode, setIsCompactMode] = useLocalStorage("compactMode", true);
-  
+
   const [projects] = useProjects();
   const [reserves, setReserves] = useReserves();
   const [receptions, setReceptions] = useReceptions();
@@ -110,176 +110,155 @@ const CompactDashboard = () => {
 
   return (
     <div className="min-h-screen w-full bg-background" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Top Bar Compact */}
-      <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <LayoutGrid className="h-5 w-5 text-primary" />
-            <h1 className="font-semibold">
-              {t('compactDashboard') || 'Tableau de Bord Compact'}
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleModeToggle}
-              className="gap-2"
-            >
-              <Maximize2 className="h-4 w-4" />
-              {t('normalMode') || 'Mode Normal'}
-            </Button>
-          </div>
-        </div>
-      </div>
+
 
       <div className="p-4 space-y-4">
-      {/* Header */}
-      <div className="text-center mb-4">
-        <p className="text-sm text-muted-foreground">
-          {t('quickAccess') || 'Accès rapide aux fonctionnalités essentielles'}
-        </p>
-      </div>
+        {/* Header */}
+        <div className="text-center mb-4">
+          <p className="text-sm text-muted-foreground">
+            {t('quickAccess') || 'Accès rapide aux fonctionnalités essentielles'}
+          </p>
+        </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        {stats.map((stat, index) => (
-          <Card key={index} className="p-3">
-            <div className="flex items-center gap-2">
-              <stat.icon className={`h-5 w-5 ${stat.color}`} />
-              <div>
-                <p className="text-xs text-muted-foreground">{stat.title}</p>
-                <p className="text-lg font-bold">{stat.value}</p>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 gap-3">
+          {stats.map((stat, index) => (
+            <Card key={index} className="p-3">
+              <div className="flex items-center gap-2">
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                <div>
+                  <p className="text-xs text-muted-foreground">{stat.title}</p>
+                  <p className="text-lg font-bold">{stat.value}</p>
+                </div>
               </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            {t('quickActions') || 'Actions Rapides'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Dialog open={isReserveDialogOpen} onOpenChange={setIsReserveDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full" size="sm">
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                {t('addReserve') || 'Ajouter Réserve'}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>{t('createReserve') || 'Créer une Réserve'}</DialogTitle>
-              </DialogHeader>
-              <CompactReserveForm
-                onSubmit={handleCreateReserve}
-                onClose={() => setIsReserveDialogOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
-          
-          <Button variant="outline" className="w-full" size="sm" onClick={() => window.location.href = '/receptions'}>
-            <CheckCircle className="h-4 w-4 mr-2" />
-            {t('addReception') || 'Ajouter Réception'}
-          </Button>
-          
-          <Button variant="outline" className="w-full" size="sm" onClick={() => window.location.href = '/tasks'}>
-            <Calendar className="h-4 w-4 mr-2" />
-            {t('addTask') || 'Ajouter Tâche'}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Recent Reserves */}
-      {recentReserves.length > 0 && (
+        {/* Quick Actions */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              {t('recentReserves') || 'Réserves Récentes'}
+              <Plus className="h-5 w-5" />
+              {t('quickActions') || 'Actions Rapides'}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {recentReserves.map(reserve => (
-              <div key={reserve.id} className="p-2 border rounded-lg">
-                <div className="flex justify-between items-start mb-1">
-                  <h4 className="font-medium text-sm truncate">{reserve.title}</h4>
-                  <div className="flex gap-1">
-                    <Badge className={getPriorityColor(reserve.priority)}>
-                      {reserve.priority}
-                    </Badge>
-                    <Badge className={getStatusColor(reserve.status)}>
-                      {reserve.status}
+          <CardContent className="space-y-2">
+            <Dialog open={isReserveDialogOpen} onOpenChange={setIsReserveDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full" size="sm">
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  {t('addReserve') || 'Ajouter Réserve'}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{t('createReserve') || 'Créer une Réserve'}</DialogTitle>
+                </DialogHeader>
+                <CompactReserveForm
+                  onSubmit={handleCreateReserve}
+                  onClose={() => setIsReserveDialogOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
+
+            <Button variant="outline" className="w-full" size="sm" onClick={() => window.location.href = '/receptions'}>
+              <CheckCircle className="h-4 w-4 mr-2" />
+              {t('addReception') || 'Ajouter Réception'}
+            </Button>
+
+            <Button variant="outline" className="w-full" size="sm" onClick={() => window.location.href = '/tasks'}>
+              <Calendar className="h-4 w-4 mr-2" />
+              {t('addTask') || 'Ajouter Tâche'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Recent Reserves */}
+        {recentReserves.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                {t('recentReserves') || 'Réserves Récentes'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {recentReserves.map(reserve => (
+                <div key={reserve.id} className="p-2 border rounded-lg">
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className="font-medium text-sm truncate">{reserve.title}</h4>
+                    <div className="flex gap-1">
+                      <Badge className={getPriorityColor(reserve.priority)}>
+                        {reserve.priority}
+                      </Badge>
+                      <Badge className={getStatusColor(reserve.status)}>
+                        {reserve.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {reserve.description}
+                  </p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Recent Receptions */}
+        {recentReceptions.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CheckCircle className="h-5 w-5" />
+                {t('recentReceptions') || 'Réceptions Récentes'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {recentReceptions.map(reception => (
+                <div key={reception.id} className="p-2 border rounded-lg">
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className="font-medium text-sm">{t('reception') || 'Réception'} #{reception.id.slice(-4)}</h4>
+                    <Badge className={reception.hasReserves ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
+                      {reception.hasReserves ? t('withReserves') || 'Avec réserves' : t('validated') || 'Validée'}
                     </Badge>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(reception.date).toLocaleDateString()}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground truncate">
-                  {reserve.description}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Recent Receptions */}
-      {recentReceptions.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              {t('recentReceptions') || 'Réceptions Récentes'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {recentReceptions.map(reception => (
-              <div key={reception.id} className="p-2 border rounded-lg">
-                <div className="flex justify-between items-start mb-1">
-                  <h4 className="font-medium text-sm">{t('reception') || 'Réception'} #{reception.id.slice(-4)}</h4>
-                  <Badge className={reception.hasReserves ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
-                    {reception.hasReserves ? t('withReserves') || 'Avec réserves' : t('validated') || 'Validée'}
-                  </Badge>
+        {/* Urgent Tasks */}
+        {urgentTasks.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                {t('urgentTasks') || 'Tâches Urgentes'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {urgentTasks.map(task => (
+                <div key={task.id} className="p-2 border rounded-lg">
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className="font-medium text-sm truncate">{task.title}</h4>
+                    <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                      {t('urgent') || 'Urgent'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('deadline') || 'Échéance'}: {new Date(task.endDate).toLocaleDateString()}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(reception.date).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Urgent Tasks */}
-      {urgentTasks.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              {t('urgentTasks') || 'Tâches Urgentes'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {urgentTasks.map(task => (
-              <div key={task.id} className="p-2 border rounded-lg">
-                <div className="flex justify-between items-start mb-1">
-                  <h4 className="font-medium text-sm truncate">{task.title}</h4>
-                  <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
-                    {t('urgent') || 'Urgent'}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {t('deadline') || 'Échéance'}: {new Date(task.endDate).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              ))}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
