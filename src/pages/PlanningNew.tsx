@@ -48,12 +48,16 @@ const PlanningNew = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [startY, setStartY] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!scrollContainerRef.current) return;
     setIsDragging(true);
     setStartX(e.pageX - scrollContainerRef.current.offsetLeft);
+    setStartY(e.pageY - scrollContainerRef.current.offsetTop);
     setScrollLeft(scrollContainerRef.current.scrollLeft);
+    setScrollTop(scrollContainerRef.current.scrollTop);
   };
 
   const handleMouseLeave = () => {
@@ -68,8 +72,11 @@ const PlanningNew = () => {
     if (!isDragging || !scrollContainerRef.current) return;
     e.preventDefault();
     const x = e.pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 2; // Scroll speed
-    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+    const y = e.pageY - scrollContainerRef.current.offsetTop;
+    const walkX = (x - startX); // Scroll speed 1:1 for natural feel
+    const walkY = (y - startY);
+    scrollContainerRef.current.scrollLeft = scrollLeft - walkX;
+    scrollContainerRef.current.scrollTop = scrollTop - walkY;
   };
 
   // Touch events for mobile
@@ -77,14 +84,19 @@ const PlanningNew = () => {
     if (!scrollContainerRef.current) return;
     setIsDragging(true);
     setStartX(e.touches[0].pageX - scrollContainerRef.current.offsetLeft);
+    setStartY(e.touches[0].pageY - scrollContainerRef.current.offsetTop);
     setScrollLeft(scrollContainerRef.current.scrollLeft);
+    setScrollTop(scrollContainerRef.current.scrollTop);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging || !scrollContainerRef.current) return;
     const x = e.touches[0].pageX - scrollContainerRef.current.offsetLeft;
-    const walk = (x - startX) * 2;
-    scrollContainerRef.current.scrollLeft = scrollLeft - walk;
+    const y = e.touches[0].pageY - scrollContainerRef.current.offsetTop;
+    const walkX = (x - startX);
+    const walkY = (y - startY);
+    scrollContainerRef.current.scrollLeft = scrollLeft - walkX;
+    scrollContainerRef.current.scrollTop = scrollTop - walkY;
   };
 
   const handleTouchEnd = () => {
@@ -632,8 +644,9 @@ const PlanningNew = () => {
             <div className="absolute left-60 top-0 bottom-0 w-4 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
 
             <div
+              id="planning-scroll"
               ref={scrollContainerRef}
-              className={`overflow-auto ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
+              className={`relative overflow-x-auto overflow-y-auto cursor-grab active:cursor-grabbing ${isDragging ? 'select-none' : ''}`}
               style={{ maxHeight: 'calc(100vh - 300px)', height: '600px' }}
               onMouseDown={handleMouseDown}
               onMouseLeave={handleMouseLeave}
@@ -643,7 +656,7 @@ const PlanningNew = () => {
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
-              <div style={{ minWidth: `${Math.max(1200, timeUnits.length * (timeScale === 'day' ? 60 : timeScale === 'month' ? 100 : 150))}px` }}>
+              <div className="relative" style={{ minWidth: `${Math.max(1600, timeUnits.length * (timeScale === 'day' ? 60 : timeScale === 'month' ? 100 : 150))}px` }}>
                 {/* Timeline Header */}
                 <div className="flex border-b bg-muted sticky top-0 z-30">
                   <div className="w-60 p-3 font-medium border-r bg-background sticky left-0 z-40">

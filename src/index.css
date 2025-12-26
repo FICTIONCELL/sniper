@@ -177,4 +177,9 @@ All colors MUST be HSL.
   .dark .theme-3d .glass-panel {
     @apply bg-black/20 border-white/10;
   }
+
+  #planning-scroll {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+  }
 }
