@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Camera } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Camera, Image as ImageIcon } from "lucide-react";
+import { CameraCapture } from "@/components/CameraCapture";
 import { useProjects, useBlocks, useApartments, useCategories, useContractors, useReserves } from "@/hooks/useLocalStorage";
 import { Reserve } from "@/types";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -36,6 +38,7 @@ export function ReserveForm({ onSubmit }: ReserveFormProps) {
     priority: 'normal' as Reserve['priority']
   });
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -67,12 +70,16 @@ export function ReserveForm({ onSubmit }: ReserveFormProps) {
     }
   };
 
-  const handleCameraCapture = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.accept = 'image/*';
-      fileInputRef.current.capture = 'environment'; // Utilise la caméra arrière sur mobile
-      fileInputRef.current.click();
-    }
+  const handleCameraCapture = (file: File) => {
+    setPendingFiles(prev => [...prev, file]);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageUrl = event.target?.result as string;
+      setFormData(prev => ({ ...prev, images: [...prev.images, imageUrl] }));
+    };
+    reader.readAsDataURL(file);
+    setShowCamera(false);
   };
 
   const removeImage = (index: number) => {
@@ -208,7 +215,7 @@ export function ReserveForm({ onSubmit }: ReserveFormProps) {
         <div className="flex flex-wrap gap-2">
           {formData.images.map((image, index) => (
             <div key={index} className="relative">
-              <img src={image} alt={`Preview ${index} `} className="w-20 h-20 object-cover rounded border" />
+              <img src={image} alt={`Preview ${index}`} className="w-20 h-20 object-cover rounded border" />
               <Button
                 type="button"
                 variant="destructive"
@@ -229,13 +236,43 @@ export function ReserveForm({ onSubmit }: ReserveFormProps) {
           className="hidden"
           multiple
           accept="image/*"
-          capture="environment"
           aria-label="Ajouter des photos"
         />
-        <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="mt-2">
-          <Camera className="mr-2 h-4 w-4" />
-          {t('addPhoto')}
-        </Button>
+        <div className="flex gap-2 mt-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCamera(true)}
+            className="flex-1"
+          >
+            <Camera className="mr-2 h-4 w-4" />
+            {t('takePhoto') || 'Prendre une photo'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex-1"
+          >
+            <ImageIcon className="mr-2 h-4 w-4" />
+            {t('chooseFromGallery') || 'Choisir depuis la galerie'}
+          </Button>
+        </div>
+
+        {/* Camera Dialog */}
+        <Dialog open={showCamera} onOpenChange={setShowCamera}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{t('takePhoto') || 'Prendre une photo'}</DialogTitle>
+            </DialogHeader>
+            <CameraCapture
+              onCapture={handleCameraCapture}
+              onCancel={() => setShowCamera(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="space-y-2">
