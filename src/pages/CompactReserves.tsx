@@ -46,27 +46,27 @@ const CompactReserves = () => {
         const blockName = getBlockName(reserve.blockId)?.toLowerCase() || "";
         const apartmentNumber = getApartmentNumber(reserve.apartmentId)?.toLowerCase() || "";
         const categoryName = getCategoryName(reserve.categoryId).toLowerCase();
-        
-        const searchMatch = 
+
+        const searchMatch =
           reserve.title.toLowerCase().includes(query) ||
           reserve.description.toLowerCase().includes(query) ||
           projectName.includes(query) ||
           blockName.includes(query) ||
           apartmentNumber.includes(query) ||
           categoryName.includes(query);
-        
+
         if (!searchMatch) return false;
       }
-      
+
       // Project filter
       if (filterProject !== "all" && reserve.projectId !== filterProject) return false;
-      
+
       // Status filter
       if (filterStatus !== "all" && reserve.status !== filterStatus) return false;
-      
+
       // Priority filter
       if (filterPriority !== "all" && reserve.priority !== filterPriority) return false;
-      
+
       return true;
     });
   }, [reserves, searchQuery, filterProject, filterStatus, filterPriority]);
@@ -129,71 +129,69 @@ const CompactReserves = () => {
   };
 
   return (
-    <div className="p-4 space-y-4 max-w-7xl mx-auto">
+    <div className="p-2 md:p-4 space-y-4 w-full max-w-none">
       {/* Header with Search */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between px-2">
           <div>
-            <h1 className="text-2xl font-bold">Mode Compact - Réserves</h1>
-            <p className="text-muted-foreground">Gestion rapide des réserves</p>
+            <h1 className="text-2xl font-bold">Mode Compact</h1>
+            <p className="text-muted-foreground text-sm">Gestion rapide des réserves</p>
           </div>
         </div>
 
         {/* Search and Filters */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Search Bar */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher projets, blocs, appartements, catégories..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        <Card className="border shadow-sm">
+          <CardContent className="p-3 space-y-3">
+            {/* Search Bar */}
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-12 text-base"
+              />
+            </div>
 
-              {/* Quick Filters */}
-              <div className="flex gap-2">
-                <Select value={filterProject} onValueChange={setFilterProject}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Projet" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous projets</SelectItem>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Quick Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Select value={filterProject} onValueChange={setFilterProject}>
+                <SelectTrigger className="h-12 text-base">
+                  <SelectValue placeholder="Projet" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous projets</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Statut" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tous</SelectItem>
-                    <SelectItem value="ouverte">Ouvert</SelectItem>
-                    <SelectItem value="en_cours">En cours</SelectItem>
-                    <SelectItem value="resolue">Terminé</SelectItem>
-                  </SelectContent>
-                </Select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-12 text-base">
+                  <SelectValue placeholder="Statut" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous statuts</SelectItem>
+                  <SelectItem value="ouverte">Ouvert</SelectItem>
+                  <SelectItem value="en_cours">En cours</SelectItem>
+                  <SelectItem value="resolue">Terminé</SelectItem>
+                </SelectContent>
+              </Select>
 
-                <Select value={filterPriority} onValueChange={setFilterPriority}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Priorité" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="faible">Faible</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={filterPriority} onValueChange={setFilterPriority}>
+                <SelectTrigger className="h-12 text-base">
+                  <SelectValue placeholder="Priorité" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes priorités</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="faible">Faible</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
@@ -292,8 +290,8 @@ const CompactReserves = () => {
                 <Search className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Aucune réserve trouvée</h3>
                 <p className="text-muted-foreground mb-4 text-center">
-                  {reserves.length === 0 
-                    ? "Commencez par créer votre première réserve" 
+                  {reserves.length === 0
+                    ? "Commencez par créer votre première réserve"
                     : "Modifiez les filtres de recherche ou créez une nouvelle réserve"
                   }
                 </p>

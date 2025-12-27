@@ -445,7 +445,7 @@ const Reserves = () => {
                               )}
                               <div>
                                 <p className="text-sm font-medium">{t('receptionReport')}</p>
-                                <div className="border rounded p-4 mt-2 bg-gray-50">
+                                <div className="border rounded p-4 mt-2 bg-white text-black">
                                   <p className="text-sm whitespace-pre-line">
                                     {generatePVContent(
                                       reserve,

@@ -89,6 +89,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         if (tempToken) {
             // Restore the session
             setAccessToken(tempToken);
+            localStorage.setItem('sniper_access_token', tempToken); // Persist for normal refreshes too
 
             if (storedUser) {
                 try {
@@ -129,6 +130,13 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 console.error('Failed to parse stored user', e);
             }
         }
+
+        // Check for persisted access token (for normal refreshes)
+        const persistedToken = localStorage.getItem('sniper_access_token');
+        if (persistedToken && !tempToken) {
+            setAccessToken(persistedToken);
+            console.log('Restored access token from localStorage');
+        }
     }, []);
 
     const clearLocalData = () => {
@@ -142,6 +150,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
         keysToRemove.forEach(key => localStorage.removeItem(key));
         localStorage.removeItem('sniper_device_id');
         localStorage.removeItem('sniper_user');
+        localStorage.removeItem('sniper_access_token');
     };
 
     const getAllLocalStorageData = () => {
@@ -378,6 +387,7 @@ export const GoogleDriveProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
             setUser(googleUser);
             localStorage.setItem('sniper_user', JSON.stringify(googleUser));
+            localStorage.setItem('sniper_access_token', token);
 
             toast({
                 title: t('connected'),

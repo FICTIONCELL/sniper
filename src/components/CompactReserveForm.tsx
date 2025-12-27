@@ -185,33 +185,33 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader className="pb-3">
+    <Card className="w-full max-w-none border-none shadow-none rounded-none bg-transparent">
+      <CardHeader className="pb-3 px-2 pt-0">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{t('newReserveTitle')}</CardTitle>
+          <CardTitle className="text-xl font-bold">{t('newReserveTitle')}</CardTitle>
           <Button
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-8 w-8 p-0"
+            className="h-10 w-10 p-0"
           >
-            <X className="h-4 w-4" />
+            <X className="h-6 w-6" />
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2 pb-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             {/* Row 1: Title and Project */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('reserveTitleLabel')}</FormLabel>
+                    <FormLabel className="text-base font-semibold">{t('reserveTitleLabel')}</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('reserveTitleExample')} {...field} />
+                      <Input placeholder={t('reserveTitleExample')} className="h-12 text-base" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -222,10 +222,10 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
                 name="projectId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('projectEmojiLabel')}</FormLabel>
+                    <FormLabel className="text-base font-semibold">{t('projectEmojiLabel')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={!!selectedContractorId}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder={t('selectProjectPlaceholder')} />
                         </SelectTrigger>
                       </FormControl>
@@ -248,16 +248,16 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
             </div>
 
             {/* Row 2: Block and Apartment */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="blockId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('blockEmojiLabel')}</FormLabel>
+                    <FormLabel className="text-base font-semibold">{t('blockEmojiLabel')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={!selectedProjectId}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder={t('selectBlockPlaceholder')} />
                         </SelectTrigger>
                       </FormControl>
@@ -279,10 +279,10 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
                 name="apartmentId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('apartmentEmojiLabel')}</FormLabel>
+                    <FormLabel className="text-base font-semibold">{t('apartmentEmojiLabel')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={!selectedBlockId}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder={t('apartmentNumberPlaceholder')} />
                         </SelectTrigger>
                       </FormControl>
@@ -302,16 +302,16 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
             </div>
 
             {/* Row 3: Category and Contractor */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="categoryId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('categoryEmojiLabel')}</FormLabel>
+                    <FormLabel className="text-base font-semibold">{t('categoryEmojiLabel')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={!selectedProjectId}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder={t('workTypePlaceholder')} />
                         </SelectTrigger>
                       </FormControl>
@@ -332,10 +332,10 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
                 name="contractorId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('contractorEmojiLabel')}</FormLabel>
+                    <FormLabel className="text-base font-semibold">{t('contractorEmojiLabel')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={!selectedProjectId && !selectedCategoryId}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-12 text-base">
                           <SelectValue placeholder={t('assignedToPlaceholder')} />
                         </SelectTrigger>
                       </FormControl>
@@ -354,16 +354,16 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
             </div>
 
             {/* Row 4: Priority and Status */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="priority"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('priorityEmojiLabel')}</FormLabel>
+                    <FormLabel className="text-base font-semibold">{t('priorityEmojiLabel')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-12 text-base">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -394,10 +394,10 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('statusLabel')}</FormLabel>
+                    <FormLabel className="text-base font-semibold">{t('statusLabel')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-12 text-base">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -431,12 +431,11 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('descriptionEmojiLabel')}</FormLabel>
+                  <FormLabel className="text-base font-semibold">{t('descriptionEmojiLabel')}</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder={t('reserveDescriptionPlaceholder')}
-                      className="resize-none"
-                      rows={3}
+                      className="resize-none text-base min-h-[100px]"
                       {...field}
                     />
                   </FormControl>
@@ -446,25 +445,25 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
             />
 
             {/* Photos */}
-            <div className="space-y-2">
-              <FormLabel>{t('photosEmojiLabel')}</FormLabel>
+            <div className="space-y-3">
+              <FormLabel className="text-base font-semibold">{t('photosEmojiLabel')}</FormLabel>
               {images.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-2">
+                <div className="flex flex-wrap gap-3 mb-2">
                   {images.map((image, index) => (
                     <div key={index} className="relative">
                       <img
                         src={image}
                         alt={`Photo ${index + 1}`}
-                        className="w-16 h-16 object-cover rounded border"
+                        className="w-20 h-20 object-cover rounded-lg border shadow-sm"
                       />
                       <Button
                         type="button"
                         variant="destructive"
                         size="sm"
-                        className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full"
+                        className="absolute -top-2 -right-2 h-7 w-7 p-0 rounded-full shadow-md"
                         onClick={() => removeImage(index)}
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
@@ -479,50 +478,57 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
                 accept="image/*"
                 aria-label="Ajouter des photos"
               />
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="lg"
                   onClick={() => setShowCamera(true)}
-                  className="flex-1"
+                  className="flex-1 h-14 text-base border-2"
                 >
-                  <Camera className="mr-2 h-4 w-4" />
+                  <Camera className="mr-2 h-5 w-5" />
                   {t('takePhoto') || 'Prendre une photo'}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="lg"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex-1"
+                  className="flex-1 h-14 text-base border-2"
                 >
-                  <ImageIcon className="mr-2 h-4 w-4" />
+                  <ImageIcon className="mr-2 h-5 w-5" />
                   {t('chooseFromGallery') || 'Choisir depuis la galerie'}
                 </Button>
               </div>
 
               {/* Camera Dialog */}
               <Dialog open={showCamera} onOpenChange={setShowCamera}>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>{t('takePhoto') || 'Prendre une photo'}</DialogTitle>
-                  </DialogHeader>
-                  <CameraCapture
-                    onCapture={handleCameraCapture}
-                    onCancel={() => setShowCamera(false)}
-                  />
+                <DialogContent className="max-w-full h-[100dvh] p-0 overflow-hidden">
+                  <div className="flex flex-col h-full">
+                    <div className="p-4 border-b flex items-center justify-between">
+                      <DialogTitle>{t('takePhoto') || 'Prendre une photo'}</DialogTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setShowCamera(false)}>
+                        <X className="h-6 w-6" />
+                      </Button>
+                    </div>
+                    <div className="flex-1 relative">
+                      <CameraCapture
+                        onCapture={handleCameraCapture}
+                        onCancel={() => setShowCamera(false)}
+                      />
+                    </div>
+                  </div>
                 </DialogContent>
               </Dialog>
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6">
+              <Button type="button" variant="outline" onClick={onClose} className="h-14 text-base sm:w-32 order-2 sm:order-1">
                 {t('cancelButton')}
               </Button>
-              <Button type="submit">
-                <Save className="mr-2 h-4 w-4" />
+              <Button type="submit" className="h-14 text-base sm:w-48 order-1 sm:order-2">
+                <Save className="mr-2 h-5 w-5" />
                 {t('saveButton')}
               </Button>
             </div>

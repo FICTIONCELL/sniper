@@ -17,9 +17,9 @@ export function Layout({ children }: LayoutProps) {
   return (
     <NotificationProvider>
       <SidebarProvider>
-        <div className="min-h-screen flex w-full">
+        <div className={`min-h-screen flex w-full ${isCompactMode ? 'compact-mode-active' : ''}`}>
           {!isCompactMode && <AppSidebar />}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col w-full">
             <header className="h-14 md:h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center px-2 md:px-4 gap-2 md:gap-4 sticky top-0 z-50">
               {!isCompactMode && <SidebarTrigger className="shrink-0 h-9 w-9" />}
               <div className="flex-1 flex items-center justify-between gap-2 overflow-hidden">
@@ -32,7 +32,7 @@ export function Layout({ children }: LayoutProps) {
                 />
               </div>
             </header>
-            <main className="flex-1 overflow-auto">
+            <main className={`flex-1 overflow-auto ${isCompactMode ? 'w-full p-0' : ''}`}>
               {children}
             </main>
           </div>

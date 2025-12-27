@@ -96,6 +96,7 @@ export const generatePVPDF = (data: PVData, language = 'fr'): jsPDF => {
   // PV Info
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
 
   // PV Number and Date
   doc.text(`${t.pvNumber}: ${data.pvNumber}`, 20, yPosition);

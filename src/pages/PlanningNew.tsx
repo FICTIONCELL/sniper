@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { useTasks, useProjects, useContractors, useCategories, generateId } from "@/hooks/useLocalStorage";
+import { useTasks, useProjects, useContractors, useCategories, useReserves, generateId } from "@/hooks/useLocalStorage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ const PlanningNew = () => {
   const [projects] = useProjects();
   const [contractors] = useContractors();
   const [categories] = useCategories();
+  const [reserves] = useReserves();
 
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [timeScale, setTimeScale] = useState<TimeScale>('month');
@@ -154,10 +155,45 @@ const PlanningNew = () => {
     return endDate < today && task.status !== 'termine';
   };
 
+  // Helper to calculate progress based on time and reserves
+  const calculateProgress = (startDate: string, endDate: string, projectId: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const today = new Date();
+
+    // Dt: Total duration
+    const totalDuration = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+
+    // De: Elapsed days
+    let elapsedDays = 0;
+    if (today > start) {
+      elapsedDays = Math.min(totalDuration, Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    }
+
+    // Nr: Number of reserves for this project
+    const projectReserves = reserves.filter(r => r.projectId === projectId && r.status !== 'resolue').length;
+
+    // Pr: Weight of a reserve (5%)
+    const reserveWeight = 0.05;
+
+    // ProgressTemps = (De / Dt) * 100
+    const progressTemps = (elapsedDays / totalDuration) * 100;
+
+    // ImpactReserves = Nr * Pr * 100 (to get percentage)
+    const impactReserves = projectReserves * reserveWeight * 100;
+
+    // ProgressFinal = ProgressTemps * (1 - ImpactReserves / 100)
+    const progressFinal = Math.max(0, Math.round(progressTemps * (1 - impactReserves / 100)));
+
+    return progressFinal;
+  };
+
   const combinedItems = useMemo(() => {
     // Map contractors to a task-like structure
     const contractorItems = contractors.map(contractor => {
       const categoryName = categories.find(c => c.id === contractor.categoryIds[0])?.name || t('noCategory');
+      const progress = calculateProgress(contractor.contractStart, contractor.contractEnd, contractor.projectId);
+
       return {
         id: contractor.id,
         title: `${categoryName}_${contractor.specialty}`,
@@ -168,7 +204,7 @@ const PlanningNew = () => {
         endDate: contractor.contractEnd,
         status: contractor.status === 'actif' ? 'en_cours' : 'en_attente',
         priority: 'normal',
-        progress: contractor.status === 'actif' ? 100 : 0,
+        progress: progress,
         type: 'contractor' as const,
         originalStatus: contractor.status
       };
@@ -176,6 +212,7 @@ const PlanningNew = () => {
 
     const taskItems = tasks.map(task => ({
       ...task,
+      progress: calculateProgress(task.startDate, task.endDate, task.projectId),
       type: 'task' as const
     }));
 

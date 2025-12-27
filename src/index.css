@@ -208,4 +208,26 @@ All colors MUST be HSL.
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x pan-y;
   }
+
+  /* Compact Mode Optimizations */
+  .compact-mode-active button,
+  .compact-mode-active [role="button"],
+  .compact-mode-active input,
+  .compact-mode-active select,
+  .compact-mode-active textarea {
+    @apply min-h-[48px] text-base;
+  }
+
+  .compact-mode-active .card {
+    @apply border-none shadow-none rounded-none;
+  }
+
+  .compact-full-width {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
 }
