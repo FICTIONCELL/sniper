@@ -90,8 +90,6 @@ export const TopBar = ({
 
   const handleCompactModeToggle = () => {
     onCompactModeToggle();
-    // Naviguer vers le mode compact
-    window.location.href = '/compact';
     toast({
       title: t('compactMode'),
       description: t('compactModeDesc'),
