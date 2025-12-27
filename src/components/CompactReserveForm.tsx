@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Camera, Save } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { X, Camera, Save, Image as ImageIcon } from "lucide-react";
+import { CameraCapture } from "@/components/CameraCapture";
 import { useProjects, useBlocks, useApartments, useCategories, useContractors, useReserves } from "@/hooks/useLocalStorage";
 import { Reserve } from "@/types";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -42,6 +44,9 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
   const [contractors] = useContractors();
   const [reserves] = useReserves();
   const [images, setImages] = useState<string[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [showCamera, setShowCamera] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ReserveFormData>({
     resolver: zodResolver(reserveSchema),
@@ -123,14 +128,42 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
     onSubmit(reserveData);
   };
 
-  const handleImageCapture = () => {
-    // In a real app, this would open camera or file picker
-    const dummyImage = `data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=`;
-    setImages(prev => [...prev, dummyImage]);
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setPendingFiles(prev => [...prev, ...files]);
+
+      const readers = files.map(file => {
+        const reader = new FileReader();
+        return new Promise<string>((resolve) => {
+          reader.onload = (event) => {
+            resolve(event.target?.result as string);
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(readers).then(newImages => {
+        setImages(prev => [...prev, ...newImages]);
+      });
+    }
+  };
+
+  const handleCameraCapture = (file: File) => {
+    setPendingFiles(prev => [...prev, file]);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageUrl = event.target?.result as string;
+      setImages(prev => [...prev, imageUrl]);
+    };
+    reader.readAsDataURL(file);
+    setShowCamera(false);
   };
 
   const removeImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index));
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const getPriorityColor = (priority: string) => {
@@ -415,24 +448,8 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
             {/* Photos */}
             <div className="space-y-2">
               <FormLabel>{t('photosEmojiLabel')}</FormLabel>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleImageCapture}
-                >
-                  <Camera className="mr-2 h-4 w-4" />
-                  {t('addPhoto')}
-                </Button>
-                {images.length > 0 && (
-                  <span className="text-sm text-muted-foreground">
-                    {images.length} {t('photosAdded')}
-                  </span>
-                )}
-              </div>
               {images.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mb-2">
                   {images.map((image, index) => (
                     <div key={index} className="relative">
                       <img
@@ -453,6 +470,50 @@ export const CompactReserveForm = ({ onSubmit, onClose }: CompactReserveFormProp
                   ))}
                 </div>
               )}
+              <Input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                className="hidden"
+                multiple
+                accept="image/*"
+                aria-label="Ajouter des photos"
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCamera(true)}
+                  className="flex-1"
+                >
+                  <Camera className="mr-2 h-4 w-4" />
+                  {t('takePhoto') || 'Prendre une photo'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1"
+                >
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                  {t('chooseFromGallery') || 'Choisir depuis la galerie'}
+                </Button>
+              </div>
+
+              {/* Camera Dialog */}
+              <Dialog open={showCamera} onOpenChange={setShowCamera}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{t('takePhoto') || 'Prendre une photo'}</DialogTitle>
+                  </DialogHeader>
+                  <CameraCapture
+                    onCapture={handleCameraCapture}
+                    onCancel={() => setShowCamera(false)}
+                  />
+                </DialogContent>
+              </Dialog>
             </div>
 
             {/* Actions */}
