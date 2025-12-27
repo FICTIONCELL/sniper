@@ -120,15 +120,6 @@ const CompactDashboard = () => {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleModeToggle}
-              className="gap-2"
-            >
-              <Maximize2 className="h-4 w-4" />
-              {t('normalMode') || 'Mode Normal'}
-            </Button>
           </div>
         </div>
       </div>
