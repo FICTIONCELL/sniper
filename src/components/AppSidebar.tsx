@@ -11,7 +11,8 @@ import {
   Tags,
   Settings,
   LayoutGrid,
-  Shield
+  Shield,
+  Zap
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NavLink, useLocation } from "react-router-dom";
@@ -53,6 +54,7 @@ export function AppSidebar() {
     { title: "Documents", url: "/documents", icon: FolderOpen },
     { title: t('categories'), url: "/categories", icon: Tags },
     { title: t('settings'), url: "/settings", icon: Settings },
+    { title: "faire vite", url: "/compact", icon: Zap },
   ];
 
   // Admin-only email

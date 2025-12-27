@@ -14,7 +14,8 @@ import {
   LogOut,
   User,
   Settings,
-  MoreVertical
+  MoreVertical,
+  Zap
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -150,6 +151,24 @@ export const TopBar = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Quick Access Button (faire vite) */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-9 px-0 text-yellow-500 hover:text-yellow-600 hover:bg-yellow-500/10"
+            onClick={() => navigate('/compact')}
+          >
+            <Zap className="h-4 w-4 fill-current" />
+            <span className="sr-only">faire vite</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>faire vite</p>
+        </TooltipContent>
+      </Tooltip>
 
       {/* Cloud Sync / User Profile Button (Always Visible) */}
       {isAuthenticated && user ? (
