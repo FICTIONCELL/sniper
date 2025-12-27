@@ -22,7 +22,7 @@ const CompactDashboard = () => {
   const { toast } = useToast();
   const { t, language } = useTranslation();
   const [isCompactMode, setIsCompactMode] = useLocalStorage("compactMode", true);
-
+  
   const [projects] = useProjects();
   const [reserves, setReserves] = useReserves();
   const [receptions, setReceptions] = useReceptions();
@@ -110,158 +110,176 @@ const CompactDashboard = () => {
 
   return (
     <div className="min-h-screen w-full bg-background" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-
-
-      <div className="p-1 md:p-2 space-y-2 w-full max-w-none">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
-          {stats.map((stat, index) => (
-            <Card key={index} className="p-2 border shadow-sm">
-              <div className="flex items-center gap-2">
-                <stat.icon className={`h-5 w-5 ${stat.color} shrink-0`} />
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">{stat.title}</p>
-                  <p className="text-2xl font-black leading-none">{stat.value}</p>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Quick Actions */}
-        <Card className="border shadow-sm">
-          <CardHeader className="pb-2 pt-3 px-3">
-            <CardTitle className="text-xl flex items-center gap-2 font-bold">
-              <Plus className="h-5 w-5 text-primary" />
-              {t('quickActions') || 'Actions Rapides'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-2 pb-3 px-3">
-            <Dialog open={isReserveDialogOpen} onOpenChange={setIsReserveDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="w-full h-14 text-lg font-bold" size="lg">
-                  <AlertTriangle className="h-6 w-6 mr-2" />
-                  {t('addReserve') || 'Ajouter Réserve'}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-full sm:max-w-md h-[100dvh] sm:h-auto p-0 sm:p-6 overflow-y-auto">
-                <DialogHeader className="p-4 sm:p-0 border-b sm:border-none">
-                  <DialogTitle>{t('createReserve') || 'Créer une Réserve'}</DialogTitle>
-                </DialogHeader>
-                <div className="p-4 sm:p-0">
-                  <CompactReserveForm
-                    onSubmit={handleCreateReserve}
-                    onClose={() => setIsReserveDialogOpen(false)}
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
-
-            <Button variant="outline" className="w-full h-14 text-lg font-bold border-2" size="lg" onClick={() => window.location.href = '/receptions'}>
-              <CheckCircle className="h-6 w-6 mr-2 text-green-600" />
-              {t('addReception') || 'Ajouter Réception'}
+      {/* Top Bar Compact */}
+      <div className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-14 items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <LayoutGrid className="h-5 w-5 text-primary" />
+            <h1 className="font-semibold">
+              {t('compactDashboard') || 'Tableau de Bord Compact'}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleModeToggle}
+              className="gap-2"
+            >
+              <Maximize2 className="h-4 w-4" />
+              {t('normalMode') || 'Mode Normal'}
             </Button>
-
-            <Button variant="outline" className="w-full h-14 text-lg font-bold border-2" size="lg" onClick={() => window.location.href = '/tasks'}>
-              <Calendar className="h-6 w-6 mr-2 text-blue-600" />
-              {t('addTask') || 'Ajouter Tâche'}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-          {/* Recent Reserves */}
-          {recentReserves.length > 0 && (
-            <Card className="border shadow-sm">
-              <CardHeader className="pb-2 pt-3 px-3">
-                <CardTitle className="text-xl flex items-center gap-2 font-bold">
-                  <AlertTriangle className="h-6 w-6 text-red-500" />
-                  {t('recentReserves') || 'Réserves Récentes'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 pb-3 px-3">
-                {recentReserves.map(reserve => (
-                  <div key={reserve.id} className="p-3 border-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="flex justify-between items-start gap-2 mb-1">
-                      <h4 className="font-bold text-base">{reserve.title}</h4>
-                      <div className="flex gap-1 shrink-0">
-                        <Badge className={`${getPriorityColor(reserve.priority)} text-xs px-2 py-0.5 font-bold`}>
-                          {reserve.priority}
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground flex-1 mr-2 font-medium">
-                        {reserve.description}
-                      </p>
-                      <Badge className={`${getStatusColor(reserve.status)} text-xs px-2 py-0.5 font-bold`}>
-                        {reserve.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="space-y-2">
-            {/* Recent Receptions */}
-            {recentReceptions.length > 0 && (
-              <Card className="border shadow-sm">
-                <CardHeader className="pb-2 pt-3 px-3">
-                  <CardTitle className="text-xl flex items-center gap-2 font-bold">
-                    <CheckCircle className="h-6 w-6 text-green-500" />
-                    {t('recentReceptions') || 'Réceptions Récentes'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 pb-3 px-3">
-                  {recentReceptions.map(reception => (
-                    <div key={reception.id} className="p-3 border-2 rounded-xl bg-muted/30">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h4 className="font-bold text-base">{t('reception') || 'Réception'} #{reception.id.slice(-4)}</h4>
-                          <p className="text-sm text-muted-foreground font-medium">
-                            {new Date(reception.date).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <Badge className={`${reception.hasReserves ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'} text-xs px-2 py-0.5 font-bold`}>
-                          {reception.hasReserves ? t('withReserves') || 'Avec réserves' : t('validated') || 'Validée'}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Urgent Tasks */}
-            {urgentTasks.length > 0 && (
-              <Card className="border shadow-sm">
-                <CardHeader className="pb-2 pt-3 px-3">
-                  <CardTitle className="text-xl flex items-center gap-2 font-bold">
-                    <Calendar className="h-6 w-6 text-blue-500" />
-                    {t('urgentTasks') || 'Tâches Urgentes'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 pb-3 px-3">
-                  {urgentTasks.map(task => (
-                    <div key={task.id} className="p-3 border-2 rounded-xl bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/20">
-                      <div className="flex justify-between items-start mb-1">
-                        <h4 className="font-bold text-base">{task.title}</h4>
-                        <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 text-xs px-2 py-0.5 font-bold">
-                          {t('urgent') || 'Urgent'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground font-medium">
-                        {t('deadline') || 'Échéance'}: {new Date(task.endDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
+      </div>
+
+      <div className="p-4 space-y-4">
+      {/* Header */}
+      <div className="text-center mb-4">
+        <p className="text-sm text-muted-foreground">
+          {t('quickAccess') || 'Accès rapide aux fonctionnalités essentielles'}
+        </p>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 gap-3">
+        {stats.map((stat, index) => (
+          <Card key={index} className="p-3">
+            <div className="flex items-center gap-2">
+              <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              <div>
+                <p className="text-xs text-muted-foreground">{stat.title}</p>
+                <p className="text-lg font-bold">{stat.value}</p>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            {t('quickActions') || 'Actions Rapides'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Dialog open={isReserveDialogOpen} onOpenChange={setIsReserveDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="w-full" size="sm">
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                {t('addReserve') || 'Ajouter Réserve'}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>{t('createReserve') || 'Créer une Réserve'}</DialogTitle>
+              </DialogHeader>
+              <CompactReserveForm
+                onSubmit={handleCreateReserve}
+                onClose={() => setIsReserveDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+          
+          <Button variant="outline" className="w-full" size="sm" onClick={() => window.location.href = '/receptions'}>
+            <CheckCircle className="h-4 w-4 mr-2" />
+            {t('addReception') || 'Ajouter Réception'}
+          </Button>
+          
+          <Button variant="outline" className="w-full" size="sm" onClick={() => window.location.href = '/tasks'}>
+            <Calendar className="h-4 w-4 mr-2" />
+            {t('addTask') || 'Ajouter Tâche'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Recent Reserves */}
+      {recentReserves.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              {t('recentReserves') || 'Réserves Récentes'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentReserves.map(reserve => (
+              <div key={reserve.id} className="p-2 border rounded-lg">
+                <div className="flex justify-between items-start mb-1">
+                  <h4 className="font-medium text-sm truncate">{reserve.title}</h4>
+                  <div className="flex gap-1">
+                    <Badge className={getPriorityColor(reserve.priority)}>
+                      {reserve.priority}
+                    </Badge>
+                    <Badge className={getStatusColor(reserve.status)}>
+                      {reserve.status}
+                    </Badge>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">
+                  {reserve.description}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Receptions */}
+      {recentReceptions.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" />
+              {t('recentReceptions') || 'Réceptions Récentes'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentReceptions.map(reception => (
+              <div key={reception.id} className="p-2 border rounded-lg">
+                <div className="flex justify-between items-start mb-1">
+                  <h4 className="font-medium text-sm">{t('reception') || 'Réception'} #{reception.id.slice(-4)}</h4>
+                  <Badge className={reception.hasReserves ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
+                    {reception.hasReserves ? t('withReserves') || 'Avec réserves' : t('validated') || 'Validée'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(reception.date).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Urgent Tasks */}
+      {urgentTasks.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              {t('urgentTasks') || 'Tâches Urgentes'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {urgentTasks.map(task => (
+              <div key={task.id} className="p-2 border rounded-lg">
+                <div className="flex justify-between items-start mb-1">
+                  <h4 className="font-medium text-sm truncate">{task.title}</h4>
+                  <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                    {t('urgent') || 'Urgent'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t('deadline') || 'Échéance'}: {new Date(task.endDate).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
       </div>
     </div>
   );
