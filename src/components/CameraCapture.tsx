@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, RefreshCw, Check, X, Settings } from 'lucide-react';
+import { Camera, RefreshCw, Check, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface CameraCaptureProps {
@@ -24,9 +24,10 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCance
 
             const constraints = {
                 video: {
-                    width: quality === 'hd' ? { ideal: 1920 } : { ideal: 640 },
-                    height: quality === 'hd' ? { ideal: 1080 } : { ideal: 480 },
-                    facingMode: 'environment' // Prefer back camera on mobile
+                    // On demande la résolution maximale disponible pour le plein écran
+                    width: { ideal: quality === 'hd' ? 1920 : 640 },
+                    height: { ideal: quality === 'hd' ? 1080 : 480 },
+                    facingMode: 'environment'
                 }
             };
 
@@ -38,7 +39,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCance
             setError(null);
         } catch (err) {
             console.error("Camera error:", err);
-            setError("Impossible d'accéder à la caméra. Vérifiez les permissions.");
+            setError("Accès caméra refusé ou non supporté.");
         }
     };
 
@@ -55,7 +56,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCance
         if (videoRef.current && canvasRef.current) {
             const video = videoRef.current;
             const canvas = canvasRef.current;
-
+            // On capture à la taille réelle du flux vidéo
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
 
@@ -70,7 +71,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCance
 
     const confirmPhoto = () => {
         if (capturedImage) {
-            // Convert base64 to File
             fetch(capturedImage)
                 .then(res => res.blob())
                 .then(blob => {
@@ -80,80 +80,89 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCance
         }
     };
 
-    const retakePhoto = () => {
-        setCapturedImage(null);
-    };
-
     return (
-        <div className="flex flex-col items-center gap-4 w-full h-full bg-black/90 p-4 rounded-lg">
-            {error ? (
-                <div className="text-red-500">{error}</div>
-            ) : (
-                <div className="relative w-full max-w-md aspect-[4/3] bg-black rounded-lg overflow-hidden">
-                    {!capturedImage ? (
-                        <video
-                            ref={videoRef}
-                            autoPlay
-                            playsInline
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <img
-                            src={capturedImage}
-                            alt="Captured"
-                            className="w-full h-full object-cover"
-                        />
-                    )}
-                    <canvas ref={canvasRef} className="hidden" />
-                </div>
-            )}
-
-            <div className="flex items-center gap-4 w-full max-w-md justify-between">
-                {!capturedImage ? (
+        // CONTENEUR PLEIN ÉCRAN
+        <div className="fixed inset-0 z-50 flex flex-col bg-black h-[100dvh] w-screen overflow-hidden">
+            
+            {/* ZONE VIDÉO / APERÇU */}
+            <div className="relative flex-1 w-full h-full bg-black">
+                {error ? (
+                    <div className="flex items-center justify-center h-full p-6 text-center text-white">
+                        <p>{error}</p>
+                        <Button onClick={onCancel} variant="link" className="text-white underline">Fermer</Button>
+                    </div>
+                ) : (
                     <>
+                        {!capturedImage ? (
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                // object-cover permet de remplir tout l'écran
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <img
+                                src={capturedImage}
+                                alt="Captured"
+                                className="w-full h-full object-cover"
+                            />
+                        )}
+                    </>
+                )}
+                <canvas ref={canvasRef} className="hidden" />
+
+                {/* BOUTON FERMER (OVERLAY) */}
+                <button 
+                    onClick={onCancel}
+                    className="absolute top-6 right-6 p-2 bg-black/40 backdrop-blur-md rounded-full text-white hover:bg-black/60 transition-colors"
+                >
+                    <X className="h-6 w-6" />
+                </button>
+
+                {/* SÉLECTEUR QUALITÉ (OVERLAY) */}
+                {!capturedImage && !error && (
+                    <div className="absolute top-6 left-6">
                         <Select value={quality} onValueChange={(v: 'sd' | 'hd') => setQuality(v)}>
-                            <SelectTrigger className="w-[100px] bg-white/10 text-white border-white/20">
-                                <SelectValue placeholder="Qualité" />
+                            <SelectTrigger className="w-[80px] h-9 bg-black/40 backdrop-blur-md text-white border-white/20 rounded-full">
+                                <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="sd">SD (Low)</SelectItem>
-                                <SelectItem value="hd">HD (High)</SelectItem>
+                            <SelectContent className="bg-zinc-900 text-white border-zinc-800">
+                                <SelectItem value="sd">SD</SelectItem>
+                                <SelectItem value="hd">HD</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+                )}
+            </div>
 
-                        <Button
-                            size="icon"
-                            className="h-16 w-16 rounded-full bg-white hover:bg-gray-200 text-black"
-                            onClick={takePhoto}
-                        >
-                            <Camera className="h-8 w-8" />
-                        </Button>
-
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-white hover:bg-white/20"
-                            onClick={onCancel}
-                        >
-                            <X className="h-6 w-6" />
-                        </Button>
-                    </>
+            {/* BARRE DE CONTRÔLE BASSE */}
+            <div className="shrink-0 h-32 flex items-center justify-center bg-black px-8">
+                {!capturedImage ? (
+                    <Button
+                        size="icon"
+                        className="h-20 w-20 rounded-full bg-white hover:bg-gray-200 text-black border-4 border-gray-400/30 shadow-2xl transition-transform active:scale-90"
+                        onClick={takePhoto}
+                    >
+                        <div className="h-16 w-16 rounded-full border-2 border-black/10 flex items-center justify-center">
+                             <Camera className="h-10 w-10" />
+                        </div>
+                    </Button>
                 ) : (
-                    <div className="flex w-full justify-between px-8">
+                    <div className="flex w-full gap-4 max-w-sm">
                         <Button
-                            variant="destructive"
-                            onClick={retakePhoto}
-                            className="rounded-full"
+                            variant="outline"
+                            onClick={() => setCapturedImage(null)}
+                            className="flex-1 h-14 rounded-2xl bg-white/10 text-white border-white/20 hover:bg-white/20"
                         >
-                            <RefreshCw className="mr-2 h-4 w-4" />
+                            <RefreshCw className="mr-2 h-5 w-5" />
                             Reprendre
                         </Button>
                         <Button
-                            variant="default"
                             onClick={confirmPhoto}
-                            className="rounded-full bg-green-600 hover:bg-green-700"
+                            className="flex-1 h-14 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-bold"
                         >
-                            <Check className="mr-2 h-4 w-4" />
+                            <Check className="mr-2 h-5 w-5" />
                             Valider
                         </Button>
                     </div>
