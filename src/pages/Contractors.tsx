@@ -1,333 +1,291 @@
-import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Check, ChevronsUpDown, Mail, Phone, Briefcase, Calendar, User, FolderKey, ShieldCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { useContractors, useCategories, useSubcontractors, generateId } from "@/hooks/useLocalStorage";
-import { Contractor } from "@/types";
-import { Plus, Users, Mail, Phone, Calendar, AlertTriangle, Edit, Trash2, Star } from "lucide-react";
-import { ContractorForm } from "@/components/ContractorForm";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+import { useCategories, useProjects, useSubcontractors } from "@/hooks/useLocalStorage";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { Contractor } from "@/types";
 
-const Contractors = () => {
+// Validation Schema
+const formSchema = z.object({
+  name: z.string().min(2, "Le nom est trop court"),
+  email: z.string().email("Email invalide"),
+  phone: z.string().min(8, "Numéro de téléphone invalide"),
+  specialty: z.string().min(2, "Spécialité requise"),
+  projectId: z.string().min(1, "Veuillez choisir un projet"),
+  categoryIds: z.array(z.string()).min(1, "Sélectionnez au moins une catégorie"),
+  contractStart: z.string().min(1, "Date de début requise"),
+  contractEnd: z.string().min(1, "Date de fin requise"),
+  status: z.enum(["actif", "expire", "suspendu"]),
+  subcontractorId: z.string().optional(),
+});
+
+interface ContractorFormProps {
+  onSubmit: (data: Omit<Contractor, 'id' | 'createdAt'>) => void;
+  onCancel?: () => void;
+  initialData?: Omit<Contractor, 'id' | 'createdAt'>;
+}
+
+export function ContractorForm({ onSubmit, onCancel, initialData }: ContractorFormProps) {
   const { t } = useTranslation();
-  const [contractors, setContractors] = useContractors();
   const [categories] = useCategories();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingContractor, setEditingContractor] = useState<Contractor | null>(null);
-  const [subcontractors, setSubcontractors] = useSubcontractors();
-  const { toast } = useToast();
+  const [projects] = useProjects();
+  const [subcontractors] = useSubcontractors();
 
-  // Automatic delay and rating calculation
-  useState(() => {
-    const today = new Date();
-    let updatedSubs = [...subcontractors];
-    let hasChanges = false;
-
-    contractors.forEach(contractor => {
-      if (contractor.subcontractorId && contractor.status === 'actif') {
-        const endDate = new Date(contractor.contractEnd);
-        if (today > endDate) {
-          const diffTime = today.getTime() - endDate.getTime();
-          const delayDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-          let penalty = 0;
-          if (delayDays > 10) penalty = -3;
-          else if (delayDays > 5) penalty = -2;
-          else if (delayDays > 0) penalty = -1;
-
-          const subIndex = updatedSubs.findIndex(s => s.id === contractor.subcontractorId);
-          if (subIndex !== -1) {
-            const currentSub = updatedSubs[subIndex];
-            if (currentSub.delay !== delayDays || currentSub.rating !== (5 + penalty)) {
-              updatedSubs[subIndex] = {
-                ...currentSub,
-                delay: delayDays,
-                rating: Math.max(0, 5 + penalty) // Base rating 5 - penalty
-              };
-              hasChanges = true;
-            }
-          }
-        }
-      }
-    });
-
-    if (hasChanges) {
-      setSubcontractors(updatedSubs);
-    }
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: initialData?.name || '',
+      email: initialData?.email || '',
+      phone: initialData?.phone || '',
+      specialty: initialData?.specialty || '',
+      projectId: initialData?.projectId || '',
+      categoryIds: initialData?.categoryIds || [],
+      contractStart: initialData?.contractStart || '',
+      contractEnd: initialData?.contractEnd || '',
+      status: initialData?.status || 'actif',
+      subcontractorId: initialData?.subcontractorId || 'none',
+    },
   });
 
-  const handleCreateContractor = (data: Omit<Contractor, 'id' | 'createdAt'>) => {
-    const newContractor: Contractor = {
-      ...data,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    setContractors(prev => [...prev, newContractor]);
-    setIsDialogOpen(false);
-    toast({
-      title: t('contractorCreated'),
-      description: t('contractorCreatedDesc'),
-    });
-  };
-
-  const handleUpdateContractor = (data: Omit<Contractor, 'id' | 'createdAt'>) => {
-    if (!editingContractor) return;
-
-    setContractors(prev => prev.map(contractor =>
-      contractor.id === editingContractor.id
-        ? { ...contractor, ...data, subcontractorId: editingContractor.subcontractorId }
-        : contractor
-    ));
-    setEditingContractor(null);
-    toast({
-      title: t('contractorUpdated'),
-      description: t('contractorUpdatedDesc'),
-    });
-  };
-
-  const handleDeleteContractor = (contractorId: string) => {
-    setContractors(prev => prev.filter(c => c.id !== contractorId));
-    toast({
-      title: t('contractorDeleted'),
-      description: t('contractorDeletedDesc'),
-    });
-  };
-
-  const getCategoryNames = (categoryIds?: string[]) => {
-    if (!categoryIds || categoryIds.length === 0) return t('noCategory');
-    return categoryIds
-      .map(id => categories.find(c => c.id === id)?.name || t('unknownCategory'))
-      .join(', ');
-  };
-
-  const getStatusColor = (status: Contractor['status']) => {
-    switch (status) {
-      case 'actif': return 'bg-green-100 text-green-800';
-      case 'expire': return 'bg-red-100 text-red-800';
-      case 'suspendu': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusLabel = (status: Contractor['status']) => {
-    switch (status) {
-      case 'actif': return t('active');
-      case 'expire': return t('expired');
-      case 'suspendu': return t('suspended');
-      default: return status;
-    }
-  };
-
-  const isContractExpired = (contractor: Contractor) => {
-    const endDate = new Date(contractor.contractEnd);
-    const today = new Date();
-    return endDate < today && contractor.status === 'actif';
-  };
-
-  const getDaysUntilExpiration = (contractor: Contractor) => {
-    const endDate = new Date(contractor.contractEnd);
-    const today = new Date();
-    const diffTime = endDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  const isContractExpiringSoon = (contractor: Contractor) => {
-    const days = getDaysUntilExpiration(contractor);
-    return days <= 30 && days > 0 && contractor.status === 'actif';
-  };
-
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{t('contractors')}</h1>
-          <p className="text-muted-foreground">{t('manageContractors')}</p>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full overflow-hidden bg-background">
+
+        {/* --- SCROLLABLE BODY --- */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-thin scrollbar-thumb-primary/20">
+
+          {/* Section: Informations de base */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2"><User className="w-4 h-4" /> {t('contractorName')}</FormLabel>
+                  <FormControl><Input placeholder={t('contractorNamePlaceholder')} {...field} className="h-11 md:h-10" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="specialty"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2"><Briefcase className="w-4 h-4" /> {t('specialty')}</FormLabel>
+                  <FormControl><Input placeholder={t('specialtyPlaceholder')} {...field} className="h-11 md:h-10" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Section: Contact */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2"><Mail className="w-4 h-4" /> {t('email')}</FormLabel>
+                  <FormControl><Input type="email" placeholder="email@example.com" {...field} className="h-11 md:h-10" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2"><Phone className="w-4 h-4" /> {t('phone')}</FormLabel>
+                  <FormControl><Input placeholder="0123456789" {...field} className="h-11 md:h-10" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Section: Projet & Sous-traitant */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="projectId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2"><FolderKey className="w-4 h-4" /> {t('project')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="h-11 md:h-10">
+                        <SelectValue placeholder={t('selectProject')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="subcontractorId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('subcontractor')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="h-11 md:h-10">
+                        <SelectValue placeholder={t('selectSubcontractor')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">{t('none')}</SelectItem>
+                      {subcontractors.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> {t('statusLabel')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="h-11 md:h-10">
+                        <SelectValue placeholder={t('selectStatus')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="actif">{t('active')}</SelectItem>
+                      <SelectItem value="expire">{t('expired')}</SelectItem>
+                      <SelectItem value="suspendu">{t('suspended')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {/* Section: Catégories Multi-select */}
+          <FormField
+            control={form.control}
+            name="categoryIds"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>{t('categories')}</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button variant="outline" role="combobox" className="w-full justify-between min-h-11 h-auto py-2">
+                        <div className="flex gap-1 flex-wrap">
+                          {field.value.length > 0 ? (
+                            field.value.map((id) => {
+                              const cat = categories.find((c) => c.id === id);
+                              return (
+                                <Badge key={id} variant="secondary" style={{ color: cat?.color, borderColor: cat?.color }}>
+                                  {cat?.name}
+                                </Badge>
+                              );
+                            })
+                          ) : (
+                            <span className="text-muted-foreground">{t('selectCategories')}</span>
+                          )}
+                        </div>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder={t('searchCategories')} />
+                      <CommandList>
+                        <CommandEmpty>{t('noCategoryFound')}</CommandEmpty>
+                        <CommandGroup>
+                          {categories.map((category) => (
+                            <CommandItem
+                              key={category.id}
+                              onSelect={() => {
+                                const newValue = field.value.includes(category.id)
+                                  ? field.value.filter((id) => id !== category.id)
+                                  : [...field.value, category.id];
+                                form.setValue("categoryIds", newValue, { shouldValidate: true });
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", field.value.includes(category.id) ? "opacity-100" : "opacity-0")} />
+                              {category.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Section: Dates */}
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="contractStart"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2"><Calendar className="w-4 h-4" /> {t('contractStart')}</FormLabel>
+                  <FormControl><Input type="date" {...field} className="h-11 md:h-10" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="contractEnd"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2"><Calendar className="w-4 h-4" /> {t('contractEnd')}</FormLabel>
+                  <FormControl><Input type="date" {...field} className="h-11 md:h-10" /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              {t('newContractor')}
+
+        {/* --- STICKY FOOTER ACTIONS --- */}
+        <div className="p-4 bg-background shrink-0 flex gap-3">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel} className="flex-1 h-12 md:h-10">
+              {t('cancel')}
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>{t('newContractor')}</DialogTitle>
-            </DialogHeader>
-            <ContractorForm onSubmit={handleCreateContractor} />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {contractors.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">{t('noContractors')}</h3>
-            <p className="text-muted-foreground mb-4">{t('startAddingContractor')}</p>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t('addContractor')}
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>{t('newContractor')}</DialogTitle>
-                </DialogHeader>
-                <ContractorForm onSubmit={handleCreateContractor} />
-              </DialogContent>
-            </Dialog>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {contractors.map((contractor) => (
-            <Card key={contractor.id} className={`hover:shadow-md transition-shadow border-l-4 ${isContractExpired(contractor) ? 'border-l-red-500' :
-              isContractExpiringSoon(contractor) ? 'border-l-yellow-500' : 'border-l-primary'
-              }`}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{contractor.name}</CardTitle>
-                  <div className="flex flex-col gap-1">
-                    <Badge className={getStatusColor(contractor.status)}>
-                      {getStatusLabel(contractor.status)}
-                    </Badge>
-                    {isContractExpired(contractor) && (
-                      <Badge variant="destructive" className="text-xs">
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        {t('expired')}
-                      </Badge>
-                    )}
-                    {isContractExpiringSoon(contractor) && (
-                      <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-700">
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        {getDaysUntilExpiration(contractor)}j
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <CardDescription className="flex items-center justify-between">
-                  <span>{contractor.specialty}</span>
-                  {contractor.subcontractorId && (
-                    <div className="flex items-center gap-1 text-xs font-medium text-primary">
-                      <Star className="w-3 h-3 fill-primary" />
-                      {subcontractors.find(s => s.id === contractor.subcontractorId)?.rating.toFixed(1) || "5.0"}
-                    </div>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Mail className="mr-2 h-4 w-4" />
-                    <span className="truncate">{contractor.email}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Phone className="mr-2 h-4 w-4" />
-                    <span>{contractor.phone}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Calendar className="mr-2 h-4 w-4" />
-                    <span>
-                      {new Date(contractor.contractStart).toLocaleDateString()} - {new Date(contractor.contractEnd).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    <span className="font-medium">{t('categories')}: </span>
-                    {getCategoryNames(contractor.categoryIds)}
-                  </div>
-
-                  {isContractExpired(contractor) && (
-                    <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                      <div className="flex items-center">
-                        <AlertTriangle className="w-4 h-4 mr-1" />
-                        {t('contractExpiredSince', { days: Math.abs(getDaysUntilExpiration(contractor)) })}
-                      </div>
-                    </div>
-                  )}
-
-                  {isContractExpiringSoon(contractor) && (
-                    <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-700">
-                      <div className="flex items-center">
-                        <AlertTriangle className="w-4 h-4 mr-1" />
-                        {t('contractExpiresIn', { days: getDaysUntilExpiration(contractor) })}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 mt-4">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button size="sm" variant="outline" onClick={() => setEditingContractor(contractor)}>
-                          <Edit className="h-4 w-4 mr-1" />
-                          {t('edit')}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-md">
-                        <DialogHeader>
-                          <DialogTitle>{t('editContractor')}</DialogTitle>
-                        </DialogHeader>
-                        <ContractorForm
-                          onSubmit={handleUpdateContractor}
-                          initialData={{
-                            name: contractor.name,
-                            email: contractor.email,
-                            phone: contractor.phone,
-                            specialty: contractor.specialty,
-                            projectId: contractor.projectId,
-                            categoryIds: contractor.categoryIds,
-                            contractStart: contractor.contractStart,
-                            contractEnd: contractor.contractEnd,
-                            status: contractor.status,
-                            subcontractorId: contractor.subcontractorId
-                          }}
-                        />
-                      </DialogContent>
-                    </Dialog>
-
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="destructive">
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          {t('delete')}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>{t('areYouSure')}</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {t('deleteContractorWarning', { name: contractor.name })}
-                            <br />
-                            {t('irreversibleAction')}
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteContractor(contractor.id)}>
-                            {t('delete')}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-
-                  <div className="text-xs text-muted-foreground">
-                    {t('addedOn')} {new Date(contractor.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          )}
+          <Button type="submit" className="flex-1 h-12 md:h-10 font-bold shadow-sm">
+            {initialData ? t('save') : (t('addSubcontractor') || 'Ajouter Sous-traitant')}
+          </Button>
         </div>
-      )}
-    </div>
+      </form>
+    </Form>
   );
-};
-
-export default Contractors;
+}
